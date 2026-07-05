@@ -1,0 +1,125 @@
+/* Overall two-column layout: sidebar on the left, editor on the right. */
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* --- Sidebar --- */
+
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background-color: #f4f4f5;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.sidebar-header button {
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background-color: #4f46e5;
+  color: white;
+  font-size: 0.85rem;
+}
+
+.sidebar-header button:hover {
+  background-color: #4338ca;
+}
+
+.note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.note-item {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.note-item.selected {
+  background-color: #e0e7ff;
+}
+
+.note-title-button {
+  flex: 1;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.delete-button:hover {
+  color: #dc2626;
+}
+
+.empty {
+  padding: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* --- Editor --- */
+
+.editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+}
+
+.editor.empty-state {
+  align-items: center;
+  justify-content: center;
+  color: #888;
+}
+
+.title-input {
+  font-size: 1.5rem;
+  font-weight: bold;
+  border: none;
+  outline: none;
+  margin-bottom: 1rem;
+}
+
+.content-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-family: inherit;
+}
