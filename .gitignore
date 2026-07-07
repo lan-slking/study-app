@@ -40,3 +40,6 @@ Thumbs.db
 .cache/
 .eslintcache
 .turbo/
+
+# Local SQLite database (server/db.js) — user data, not source
+server/data.sqlite

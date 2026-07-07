@@ -4,6 +4,22 @@
   height: 100vh;
 }
 
+/* Full-screen states shown before the app has notes to render at all. */
+.app-status {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.app-status-error {
+  color: #dc2626;
+  text-align: center;
+  padding: 0 2rem;
+}
+
 /* --- Sidebar --- */
 
 .sidebar {
@@ -106,12 +122,60 @@
   color: #888;
 }
 
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .title-input {
+  flex: 1;
   font-size: 1.5rem;
   font-weight: bold;
   border: none;
   outline: none;
-  margin-bottom: 1rem;
+}
+
+.upload-mode-select {
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 0.9rem;
+}
+
+.upload-mode-select:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.upload-button {
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #4f46e5;
+  border-radius: 6px;
+  background-color: white;
+  color: #4f46e5;
+  font-size: 0.9rem;
+}
+
+.upload-button:hover {
+  background-color: #eef2ff;
+}
+
+.upload-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.upload-error {
+  color: #dc2626;
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
 }
 
 .content-input {
@@ -122,4 +186,102 @@
   font-size: 1rem;
   line-height: 1.5;
   font-family: inherit;
+}
+
+/* --- Edit / View toggle --- */
+
+.display-mode-toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  padding: 2px;
+  background-color: #f4f4f5;
+}
+
+.display-mode-toggle button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.display-mode-toggle button.active {
+  background-color: #4f46e5;
+  color: white;
+}
+
+/* --- Rendered Markdown ("View" mode) ---
+   Colors to tweak: the accent indigo (#4f46e5, matches the rest of the app),
+   the highlight tint on bold terms (#eef2ff), and the formula block colors. */
+
+.markdown-view {
+  flex: 1;
+  overflow-y: auto;
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+.markdown-view-empty {
+  color: #888;
+}
+
+.markdown-view h1 {
+  font-size: 1.8rem;
+  color: #4f46e5;
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e0e7ff;
+}
+
+.markdown-view h2 {
+  font-size: 1.25rem;
+  color: #4338ca;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.markdown-view h3 {
+  font-size: 1.05rem;
+  color: #4338ca;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.markdown-view p {
+  margin: 0 0 0.75rem;
+}
+
+.markdown-view strong {
+  color: #3730a3;
+  background-color: #eef2ff;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+
+.markdown-view ul,
+.markdown-view ol {
+  margin: 0 0 0.75rem;
+  padding-left: 1.4rem;
+}
+
+.markdown-view li {
+  margin-bottom: 0.35rem;
+}
+
+/* Formulas: the prompts ask Gemini to wrap each formula in single backticks
+   on its own line, which Markdown renders as an inline <code> — style it like
+   a distinct block so it stands out from surrounding prose. */
+.markdown-view code {
+  display: inline-block;
+  margin: 0.25rem 0;
+  padding: 0.3rem 0.6rem;
+  background-color: #f4f4f5;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.95rem;
+  color: #1e293b;
 }
