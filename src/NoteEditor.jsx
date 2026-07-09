@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { compressImage } from './compressImage.js'
+import Quiz from './Quiz.jsx'
+import Flashcards from './Flashcards.jsx'
 
 // Separates the Markdown produced from each photo when multiple photos are
 // combined into one note (a horizontal rule reads well as a page break).
@@ -27,6 +29,10 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
   // 'view' shows rendered Markdown; 'edit' shows the raw textarea.
   const [displayMode, setDisplayMode] = useState('edit')
 
+  // null | 'quiz' | 'flashcards' — which study mode (if any) is showing
+  // instead of the normal edit/view content area.
+  const [studyMode, setStudyMode] = useState(null)
+
   // Clicking the visible "Upload photos" button triggers this hidden file input.
   const fileInputRef = useRef(null)
 
@@ -36,6 +42,9 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
     if (note) {
       setDisplayMode(note.content.trim() ? 'view' : 'edit')
     }
+    // Also leave study mode behind when switching notes — a quiz or
+    // flashcard session only makes sense for the note it was started on.
+    setStudyMode(null)
   }, [note?.id])
 
   // Tell App.jsx whenever there's an active (or awaiting-retry) upload batch,
@@ -205,9 +214,29 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
           onChange={handleFilesSelected}
           style={{ display: 'none' }}
         />
+
+        <button
+          type="button"
+          className="study-mode-button"
+          onClick={() => setStudyMode('quiz')}
+          disabled={isBatchBusy || !note.content.trim()}
+        >
+          Kviz
+        </button>
+        <button
+          type="button"
+          className="study-mode-button"
+          onClick={() => setStudyMode('flashcards')}
+          disabled={isBatchBusy || !note.content.trim()}
+        >
+          Kartončki
+        </button>
       </div>
 
-      {batch.length > 0 && (
+      {studyMode === 'quiz' && <Quiz note={note} onClose={() => setStudyMode(null)} />}
+      {studyMode === 'flashcards' && <Flashcards note={note} onClose={() => setStudyMode(null)} />}
+
+      {studyMode === null && batch.length > 0 && (
         <ul className="upload-batch-list">
           {batch.map((item, index) => (
             <li key={item.id} className={`upload-batch-item status-${item.status}`}>
@@ -227,40 +256,44 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
         </ul>
       )}
 
-      <div className="display-mode-toggle" role="group" aria-label="Display mode">
-        <button
-          type="button"
-          className={displayMode === 'edit' ? 'active' : ''}
-          onClick={() => setDisplayMode('edit')}
-          aria-pressed={displayMode === 'edit'}
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          className={displayMode === 'view' ? 'active' : ''}
-          onClick={() => setDisplayMode('view')}
-          aria-pressed={displayMode === 'view'}
-        >
-          View
-        </button>
-      </div>
+      {studyMode === null && (
+        <>
+          <div className="display-mode-toggle" role="group" aria-label="Display mode">
+            <button
+              type="button"
+              className={displayMode === 'edit' ? 'active' : ''}
+              onClick={() => setDisplayMode('edit')}
+              aria-pressed={displayMode === 'edit'}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className={displayMode === 'view' ? 'active' : ''}
+              onClick={() => setDisplayMode('view')}
+              aria-pressed={displayMode === 'view'}
+            >
+              View
+            </button>
+          </div>
 
-      {displayMode === 'edit' ? (
-        <textarea
-          className="content-input"
-          value={note.content}
-          placeholder="Start writing..."
-          onChange={(e) => onUpdateNote({ content: e.target.value })}
-        />
-      ) : (
-        <div className="markdown-view">
-          {note.content.trim() ? (
-            <ReactMarkdown>{note.content}</ReactMarkdown>
+          {displayMode === 'edit' ? (
+            <textarea
+              className="content-input"
+              value={note.content}
+              placeholder="Start writing..."
+              onChange={(e) => onUpdateNote({ content: e.target.value })}
+            />
           ) : (
-            <p className="markdown-view-empty">Nothing here yet — switch to Edit to start writing.</p>
+            <div className="markdown-view">
+              {note.content.trim() ? (
+                <ReactMarkdown>{note.content}</ReactMarkdown>
+              ) : (
+                <p className="markdown-view-empty">Nothing here yet — switch to Edit to start writing.</p>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
     </main>
   )

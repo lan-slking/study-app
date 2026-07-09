@@ -3,7 +3,8 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import { GoogleGenAI } from "@google/genai";
-import { initDb, getAllNotes, createNote, updateNote, deleteNote } from "./db.js";
+import { initDb, getAllNotes, getNoteById, createNote, updateNote, deleteNote } from "./db.js";
+import { generateValidatedJson } from "./geminiJson.js";
 
 // Node's ES modules support top-level await, so we can wait for the database
 // to be ready before the server starts accepting requests.
@@ -172,6 +173,216 @@ app.post("/api/process-image", upload.single("image"), async (req, res) => {
       : "Failed to process image. Please try again.";
 
     res.status(500).json({ error: message });
+  }
+});
+
+// --- Study modes: Quiz and Flashcards ---
+// Both are generated fresh from the note's content each time they're opened
+// (nothing quiz/flashcard-related is stored in the database) — see
+// geminiJson.js for the shared "force JSON, validate, retry once" helper
+// these all use.
+
+// Checks the shape Gemini must return for a quiz. Returns null if valid,
+// otherwise a short string describing what's wrong (used only for logging).
+function validateQuiz(parsed) {
+  if (!parsed || !Array.isArray(parsed.questions)) return "missing questions array";
+  if (parsed.questions.length < 6 || parsed.questions.length > 8) {
+    return `expected 6-8 questions, got ${parsed.questions.length}`;
+  }
+
+  for (const q of parsed.questions) {
+    if (typeof q.question !== "string" || !q.question.trim()) return "question missing text";
+    if (typeof q.section !== "string" || !q.section.trim()) return "question missing section";
+    if (typeof q.explanation !== "string" || !q.explanation.trim()) return "question missing explanation";
+
+    if (q.type === "multiple_choice") {
+      if (!Array.isArray(q.options) || q.options.length < 3) return "multiple_choice missing options";
+      if (!Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex >= q.options.length) {
+        return "multiple_choice has invalid correctIndex";
+      }
+    } else if (q.type === "short_answer") {
+      if (typeof q.answer !== "string" || !q.answer.trim()) return "short_answer missing answer";
+    } else {
+      return `unknown question type "${q.type}"`;
+    }
+  }
+
+  return null;
+}
+
+function validateFlashcards(parsed) {
+  if (!parsed || !Array.isArray(parsed.cards) || parsed.cards.length === 0) {
+    return "missing or empty cards array";
+  }
+  for (const card of parsed.cards) {
+    if (typeof card.term !== "string" || !card.term.trim()) return "card missing term";
+    if (typeof card.definition !== "string" || !card.definition.trim()) return "card missing definition";
+  }
+  return null;
+}
+
+function validateGrade(parsed) {
+  if (!parsed || typeof parsed.correct !== "boolean") return "missing correct boolean";
+  if (typeof parsed.explanation !== "string") return "missing explanation";
+  return null;
+}
+
+function buildQuizPrompt(noteContent) {
+  return `Based on the following study notes, create a quiz with 6 to 8 questions that test understanding of the material. Use a mix of multiple-choice and short-answer questions.
+
+Study notes:
+"""
+${noteContent}
+"""
+
+Return ONLY valid JSON matching exactly this shape, with no other text:
+{
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "question": "...",
+      "options": ["...", "...", "...", "..."],
+      "correctIndex": 0,
+      "explanation": "...",
+      "section": "..."
+    },
+    {
+      "type": "short_answer",
+      "question": "...",
+      "answer": "...",
+      "explanation": "...",
+      "section": "..."
+    }
+  ]
+}
+
+Rules:
+- "section" is a short label (a heading or topic taken from the notes) identifying which part of the notes this question is drawn from, so the student knows what to review if they get it wrong.
+- "explanation" is 1-2 sentences explaining why the answer is correct.
+- For multiple_choice, provide 3-4 plausible options; exactly one is correct.
+- Base every question strictly on the provided notes — never introduce outside facts.
+- Write the quiz in the same language as the notes.`;
+}
+
+function buildFlashcardsPrompt(noteContent) {
+  return `Based on the following study notes, extract the key term/definition pairs as flashcards for studying.
+
+Study notes:
+"""
+${noteContent}
+"""
+
+Return ONLY valid JSON matching exactly this shape, with no other text:
+{
+  "cards": [
+    { "term": "...", "definition": "..." }
+  ]
+}
+
+Rules:
+- Extract every important term, concept, or formula that explicitly appears in the notes, with its definition/explanation as given there.
+- Keep each definition concise (1-2 sentences).
+- Do not invent terms that aren't in the notes.
+- Write in the same language as the notes.
+- Include as many cards as the material reasonably supports (typically 5-15).`;
+}
+
+function buildGradeAnswerPrompt({ question, expectedAnswer, userAnswer }) {
+  return `A student answered a short-answer quiz question. Judge whether their answer is correct, allowing for paraphrasing, synonyms, and minor wording differences — the meaning must match, not the exact words.
+
+Question: ${question}
+Expected answer: ${expectedAnswer}
+Student's answer: ${userAnswer}
+
+Return ONLY valid JSON matching exactly this shape, with no other text:
+{
+  "correct": true,
+  "explanation": "..."
+}
+
+"explanation" is 1 short sentence written directly to the student, explaining the grading decision.`;
+}
+
+app.post("/api/notes/:id/quiz", async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({
+      error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
+    });
+  }
+
+  const id = Number(req.params.id);
+  const note = Number.isInteger(id) ? getNoteById(id) : null;
+  if (!note) {
+    return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
+  }
+  if (!note.content.trim()) {
+    return res.status(400).json({ error: "Ta zapisek še nima vsebine, iz katere bi lahko naredili kviz." });
+  }
+
+  try {
+    const quiz = await generateValidatedJson(ai, {
+      model: "gemini-2.5-flash",
+      prompt: buildQuizPrompt(note.content),
+      validate: validateQuiz,
+    });
+    res.json(quiz);
+  } catch (err) {
+    console.error("Quiz generation error:", err);
+    res.status(500).json({ error: "Kviza ni bilo mogoče ustvariti. Poskusi znova." });
+  }
+});
+
+app.post("/api/notes/:id/flashcards", async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({
+      error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
+    });
+  }
+
+  const id = Number(req.params.id);
+  const note = Number.isInteger(id) ? getNoteById(id) : null;
+  if (!note) {
+    return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
+  }
+  if (!note.content.trim()) {
+    return res.status(400).json({ error: "Ta zapisek še nima vsebine, iz katere bi lahko naredili kartončke." });
+  }
+
+  try {
+    const flashcards = await generateValidatedJson(ai, {
+      model: "gemini-2.5-flash",
+      prompt: buildFlashcardsPrompt(note.content),
+      validate: validateFlashcards,
+    });
+    res.json(flashcards);
+  } catch (err) {
+    console.error("Flashcard generation error:", err);
+    res.status(500).json({ error: "Kartončkov ni bilo mogoče ustvariti. Poskusi znova." });
+  }
+});
+
+app.post("/api/grade-answer", async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({
+      error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
+    });
+  }
+
+  const { question, expectedAnswer, userAnswer } = req.body;
+  if (!question || !expectedAnswer || typeof userAnswer !== "string") {
+    return res.status(400).json({ error: "Manjkajo podatki, potrebni za ocenjevanje odgovora." });
+  }
+
+  try {
+    const grade = await generateValidatedJson(ai, {
+      model: "gemini-2.5-flash",
+      prompt: buildGradeAnswerPrompt({ question, expectedAnswer, userAnswer }),
+      validate: validateGrade,
+    });
+    res.json(grade);
+  } catch (err) {
+    console.error("Answer grading error:", err);
+    res.status(500).json({ error: "Odgovora ni bilo mogoče oceniti. Poskusi znova." });
   }
 });
 
