@@ -1,11 +1,11 @@
 // Sidebar shows the list of all notes, plus a button to add a new one.
 // It receives everything it needs as props from App.jsx — it has no state of its own.
-function Sidebar({ notes, selectedId, onSelectNote, onAddNote, onDeleteNote }) {
+function Sidebar({ notes, selectedId, onSelectNote, onAddNote, onDeleteNote, locked }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <h2>Notes</h2>
-        <button type="button" onClick={onAddNote}>
+        <button type="button" onClick={onAddNote} disabled={locked}>
           + New Note
         </button>
       </div>
@@ -23,6 +23,7 @@ function Sidebar({ notes, selectedId, onSelectNote, onAddNote, onDeleteNote }) {
               type="button"
               className="note-title-button"
               onClick={() => onSelectNote(note.id)}
+              disabled={locked}
             >
               {note.title || 'Untitled Note'}
             </button>
@@ -32,6 +33,7 @@ function Sidebar({ notes, selectedId, onSelectNote, onAddNote, onDeleteNote }) {
               type="button"
               className="delete-button"
               onClick={() => onDeleteNote(note.id)}
+              disabled={locked}
               aria-label={`Delete ${note.title || 'Untitled Note'}`}
             >
               ✕

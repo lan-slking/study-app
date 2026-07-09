@@ -21,6 +21,13 @@ function App() {
   // cancel a pending save for note B. Shape: { [noteId]: { timer, note } }.
   const pendingSavesRef = useRef({})
 
+  // True while NoteEditor has a photo-upload batch in progress. We lock note
+  // switching/creating/deleting during this — NoteEditor doesn't unmount
+  // between note switches, so if you could switch notes mid-upload, the
+  // finished photos would get inserted into whichever note is selected when
+  // they complete, not the note you were actually uploading to.
+  const [isUploadBusy, setIsUploadBusy] = useState(false)
+
   // Find the full note object that matches the selected id.
   const selectedNote = notes.find((note) => note.id === selectedId) ?? null
 
@@ -97,12 +104,14 @@ function App() {
   // Select a different note, making sure any unsaved edit on the current one
   // is sent to the server first.
   function handleSelectNote(id) {
+    if (isUploadBusy) return
     if (selectedId !== null) flushPendingSave(selectedId)
     setSelectedId(id)
   }
 
   // Create a brand new, empty note on the backend and select it right away.
   async function handleAddNote() {
+    if (isUploadBusy) return
     const response = await fetch('/api/notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -116,6 +125,7 @@ function App() {
   // Remove a note by id, both locally and on the backend. If we deleted the
   // selected note, clear the selection.
   function handleDeleteNote(id) {
+    if (isUploadBusy) return
     // Cancel any pending save — there's no point saving a note we're deleting.
     const pending = pendingSavesRef.current[id]
     if (pending) {
@@ -161,8 +171,9 @@ function App() {
         onSelectNote={handleSelectNote}
         onAddNote={handleAddNote}
         onDeleteNote={handleDeleteNote}
+        locked={isUploadBusy}
       />
-      <NoteEditor note={selectedNote} onUpdateNote={handleUpdateNote} />
+      <NoteEditor note={selectedNote} onUpdateNote={handleUpdateNote} onBusyChange={setIsUploadBusy} />
     </div>
   )
 }

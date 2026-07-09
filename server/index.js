@@ -92,7 +92,12 @@ const MARKDOWN_FORMAT_RULES = `Format the output as Markdown:
 - Use "## " for each section heading.
 - Use **bold** for key terms and definitions.
 - Use "- " bullet lists for enumerations.
-- Put each formula or equation on its own line, wrapped in single backticks, like \`E = mc^2\`.`;
+- Put each formula or equation on its own line, wrapped in single backticks, like \`E = mc^2\`.
+
+Critical accuracy rule: if any word, phrase, or section is illegible, smudged,
+cut off, or you are not confident you're reading it correctly, write exactly
+[nečitljivo] in its place. Never guess or invent text to fill a gap — a marked
+gap is far more useful to a student than a confident-sounding wrong answer.`;
 
 const PROMPTS = {
   // "Full notes" — transcribe everything, just cleaned up and organized.
