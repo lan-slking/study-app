@@ -58,7 +58,7 @@ app.post("/api/notes", (req, res) => {
 app.put("/api/notes/:id", (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: "Invalid note id." });
+    return res.status(400).json({ error: "Neveljaven ID zapiska." });
   }
 
   const title = req.body.title ?? "";
@@ -66,7 +66,7 @@ app.put("/api/notes/:id", (req, res) => {
   const note = updateNote(id, { title, content });
 
   if (!note) {
-    return res.status(404).json({ error: "Note not found." });
+    return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
   }
   res.json(note);
 });
@@ -74,7 +74,7 @@ app.put("/api/notes/:id", (req, res) => {
 app.delete("/api/notes/:id", (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: "Invalid note id." });
+    return res.status(400).json({ error: "Neveljaven ID zapiska." });
   }
 
   deleteNote(id);
@@ -129,12 +129,12 @@ app.post("/api/process-image", upload.single("image"), async (req, res) => {
   // with a less obvious error further down.
   if (!GEMINI_API_KEY) {
     return res.status(500).json({
-      error: "Server is missing a GEMINI_API_KEY. Add it to server/.env and restart the server.",
+      error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
     });
   }
 
   if (!req.file) {
-    return res.status(400).json({ error: "No image file uploaded." });
+    return res.status(400).json({ error: "Fotografija ni bila naložena." });
   }
 
   // multer puts non-file form fields on req.body. Fall back to "full" for any
@@ -169,8 +169,8 @@ app.post("/api/process-image", upload.single("image"), async (req, res) => {
     // surface that distinctly so it's obvious what to fix, instead of a generic message.
     const isInvalidKey = /api key not valid/i.test(err?.message ?? "");
     const message = isInvalidKey
-      ? "The Gemini API key was rejected. Check GEMINI_API_KEY in server/.env."
-      : "Failed to process image. Please try again.";
+      ? "Ključ GEMINI_API_KEY je bil zavrnjen. Preveri ga v server/.env."
+      : "Pri obdelavi fotografije je prišlo do napake. Poskusi znova.";
 
     res.status(500).json({ error: message });
   }
@@ -394,7 +394,12 @@ app.post("/api/grade-answer", async (req, res) => {
 // exactly what caused "Unexpected end of JSON input" on the frontend.
 app.use((err, req, res, next) => {
   console.error("Unhandled server error:", err);
-  res.status(500).json({ error: "Unexpected server error. Please try again." });
+
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).json({ error: "Fotografija je prevelika (največ 10 MB)." });
+  }
+
+  res.status(500).json({ error: "Prišlo je do nepričakovane napake na strežniku. Poskusi znova." });
 });
 
 app.listen(PORT, () => {
