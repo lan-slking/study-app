@@ -20,6 +20,21 @@
   padding: 0 2rem;
 }
 
+.app-status-error button {
+  cursor: pointer;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  background-color: white;
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.app-status-error button:hover {
+  background-color: #fef2f2;
+}
+
 /* --- Sidebar --- */
 
 .sidebar {
@@ -249,6 +264,21 @@
 
 .upload-retry-button:hover {
   background-color: #fef2f2;
+}
+
+/* Guided empty state shown on a brand new note — nudges toward the photo
+   flow, which is the fastest path from "blank note" to "studying". */
+.empty-note-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px dashed #ccc;
+  border-radius: 12px;
+  color: #555;
+  font-size: 1.05rem;
 }
 
 .content-input {
@@ -572,4 +602,89 @@
 
 .flashcard-dont-know:hover {
   background-color: #fee2e2;
+}
+
+/* --- Mobile sidebar drawer ---
+   Hidden/inert on wide screens; only takes effect under the media query
+   below. The toggle button and backdrop are rendered unconditionally in
+   App.jsx, but only ever visible on narrow screens. */
+
+.mobile-sidebar-toggle {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* --- Mobile layout (phones and narrow tablets) ---
+   The sidebar becomes a slide-in drawer instead of a permanent column, so
+   the editor (where students actually spend their time) gets the full
+   screen width. */
+@media (max-width: 768px) {
+  .app {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mobile-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 30;
+    border: none;
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    background-color: #4f46e5;
+    color: white;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.35);
+    z-index: 20;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 25;
+    width: 85%;
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .editor {
+    padding-top: 4rem;
+  }
+
+  .editor-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .title-input {
+    flex-basis: 100%;
+  }
+
+  .quiz-options,
+  .quiz-short-answer-input,
+  .quiz-question,
+  .flashcard {
+    max-width: 100%;
+  }
 }

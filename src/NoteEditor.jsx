@@ -10,10 +10,10 @@ const PAGE_SEPARATOR = '\n\n---\n\n'
 
 // Human-readable label for each photo's status in the upload batch list.
 const STATUS_LABELS = {
-  pending: 'Waiting…',
-  compressing: 'Compressing…',
-  uploading: 'Reading…',
-  done: 'Done',
+  pending: 'Čakam …',
+  compressing: 'Stiskam sliko …',
+  uploading: 'Berem zapiske …',
+  done: 'Končano',
 }
 
 // NoteEditor shows the title and content of the currently selected note,
@@ -33,7 +33,7 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
   // instead of the normal edit/view content area.
   const [studyMode, setStudyMode] = useState(null)
 
-  // Clicking the visible "Upload photos" button triggers this hidden file input.
+  // Clicking the visible "Naloži fotografije" button triggers this hidden file input.
   const fileInputRef = useRef(null)
 
   // Whenever a different note is selected, default to View if it already has
@@ -74,7 +74,7 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
   if (!note) {
     return (
       <main className="editor empty-state">
-        <p>Select a note or create a new one to get started.</p>
+        <p>Izberi zapisek na levi ali ustvari novega, da začneš.</p>
       </main>
     )
   }
@@ -122,20 +122,18 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
       try {
         data = await response.json()
       } catch {
-        throw new Error(
-          "Couldn't reach the server. Make sure the backend is running (see the project README).",
-        )
+        throw new Error('Strežnika ni bilo mogoče doseči. Preveri, ali backend teče.')
       }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong processing this photo.')
+        throw new Error(data.error || 'Pri obdelavi te fotografije je prišlo do napake.')
       }
 
       updateBatchItem(item.id, { status: 'done', notes: data.notes })
     } catch (err) {
       updateBatchItem(item.id, {
         status: 'error',
-        error: err.message || 'Something went wrong processing this photo.',
+        error: err.message || 'Pri obdelavi te fotografije je prišlo do napake.',
       })
     }
   }
@@ -172,9 +170,10 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
   }
 
   // Locked for the whole lifetime of a batch (not just while actively
-  // uploading) — otherwise clicking "Upload photos" again while a failed
+  // uploading) — otherwise clicking "Naloži fotografije" again while a failed
   // photo is awaiting Retry would silently replace the batch and drop it.
   const isBatchBusy = batch.length > 0
+  const hasContent = Boolean(note.content.trim())
 
   return (
     <main className="editor">
@@ -183,7 +182,7 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
           className="title-input"
           type="text"
           value={note.title}
-          placeholder="Note title"
+          placeholder="Naslov zapiska"
           onChange={(e) => onUpdateNote({ title: e.target.value })}
         />
 
@@ -192,10 +191,10 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
           value={uploadMode}
           onChange={(e) => setUploadMode(e.target.value)}
           disabled={isBatchBusy}
-          aria-label="Upload mode"
+          aria-label="Način zapiskov"
         >
-          <option value="full">Full notes</option>
-          <option value="summary">Summary</option>
+          <option value="full">Celotni zapiski</option>
+          <option value="summary">Povzetek</option>
         </select>
 
         <button
@@ -204,7 +203,7 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
           onClick={handleUploadClick}
           disabled={isBatchBusy}
         >
-          {isBatchBusy ? 'Processing...' : 'Upload photos'}
+          {isBatchBusy ? 'Obdelujem …' : 'Naloži fotografije'}
         </button>
         <input
           ref={fileInputRef}
@@ -219,7 +218,7 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
           type="button"
           className="study-mode-button"
           onClick={() => setStudyMode('quiz')}
-          disabled={isBatchBusy || !note.content.trim()}
+          disabled={isBatchBusy || !hasContent}
         >
           Kviz
         </button>
@@ -227,7 +226,7 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
           type="button"
           className="study-mode-button"
           onClick={() => setStudyMode('flashcards')}
-          disabled={isBatchBusy || !note.content.trim()}
+          disabled={isBatchBusy || !hasContent}
         >
           Kartončki
         </button>
@@ -248,7 +247,7 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
               </span>
               {item.status === 'error' && (
                 <button type="button" className="upload-retry-button" onClick={() => handleRetry(item)}>
-                  Retry
+                  Poskusi znova
                 </button>
               )}
             </li>
@@ -256,16 +255,25 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
         </ul>
       )}
 
+      {studyMode === null && !hasContent && batch.length === 0 && (
+        <div className="empty-note-hint">
+          <p>📷 Slikaj svoje zapiske in začni.</p>
+          <button type="button" className="upload-button" onClick={handleUploadClick}>
+            Naloži fotografije
+          </button>
+        </div>
+      )}
+
       {studyMode === null && (
         <>
-          <div className="display-mode-toggle" role="group" aria-label="Display mode">
+          <div className="display-mode-toggle" role="group" aria-label="Način prikaza">
             <button
               type="button"
               className={displayMode === 'edit' ? 'active' : ''}
               onClick={() => setDisplayMode('edit')}
               aria-pressed={displayMode === 'edit'}
             >
-              Edit
+              Uredi
             </button>
             <button
               type="button"
@@ -273,7 +281,7 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
               onClick={() => setDisplayMode('view')}
               aria-pressed={displayMode === 'view'}
             >
-              View
+              Poglej
             </button>
           </div>
 
@@ -281,15 +289,15 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
             <textarea
               className="content-input"
               value={note.content}
-              placeholder="Start writing..."
+              placeholder="Začni pisati ..."
               onChange={(e) => onUpdateNote({ content: e.target.value })}
             />
           ) : (
             <div className="markdown-view">
-              {note.content.trim() ? (
+              {hasContent ? (
                 <ReactMarkdown>{note.content}</ReactMarkdown>
               ) : (
-                <p className="markdown-view-empty">Nothing here yet — switch to Edit to start writing.</p>
+                <p className="markdown-view-empty">Tukaj še ni ničesar — preklopi na Uredi, da začneš pisati.</p>
               )}
             </div>
           )}

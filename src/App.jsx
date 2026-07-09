@@ -17,6 +17,11 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
 
+  // On narrow screens the sidebar becomes a slide-in drawer instead of
+  // always being visible next to the editor — see the mobile media query
+  // in App.css. Irrelevant (and harmless) on wider screens.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
   // Tracks in-flight debounce timers per note id, so typing in note A doesn't
   // cancel a pending save for note B. Shape: { [noteId]: { timer, note } }.
   const pendingSavesRef = useRef({})
@@ -39,7 +44,7 @@ function App() {
       try {
         const response = await fetch('/api/notes')
         if (!response.ok) {
-          throw new Error('The server could not load your notes.')
+          throw new Error('Strežnik ni mogel naložiti zapiskov.')
         }
         const data = await response.json()
         if (cancelled) return
@@ -48,7 +53,7 @@ function App() {
       } catch {
         if (!cancelled) {
           setLoadError(
-            "Couldn't reach the server. Make sure the backend is running (see the project README).",
+            'Strežnika ni bilo mogoče doseči. Preveri, ali backend teče (glej README).',
           )
         }
       } finally {
@@ -102,11 +107,13 @@ function App() {
   }
 
   // Select a different note, making sure any unsaved edit on the current one
-  // is sent to the server first.
+  // is sent to the server first. Also closes the mobile sidebar drawer, since
+  // picking a note means you want to look at it now.
   function handleSelectNote(id) {
     if (isUploadBusy) return
     if (selectedId !== null) flushPendingSave(selectedId)
     setSelectedId(id)
+    setIsSidebarOpen(false)
   }
 
   // Create a brand new, empty note on the backend and select it right away.
@@ -115,11 +122,12 @@ function App() {
     const response = await fetch('/api/notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'Untitled Note', content: '' }),
+      body: JSON.stringify({ title: '', content: '' }),
     })
     const newNote = await response.json()
     setNotes([newNote, ...notes])
     setSelectedId(newNote.id)
+    setIsSidebarOpen(false)
   }
 
   // Remove a note by id, both locally and on the backend. If we deleted the
@@ -156,7 +164,7 @@ function App() {
   }
 
   if (isLoading) {
-    return <div className="app-status">Loading notes...</div>
+    return <div className="app-status">Nalagam zapiske ...</div>
   }
 
   if (loadError) {
@@ -165,6 +173,20 @@ function App() {
 
   return (
     <div className="app">
+      {/* Only visible on narrow screens (see App.css) — opens the sidebar drawer. */}
+      <button
+        type="button"
+        className="mobile-sidebar-toggle"
+        onClick={() => setIsSidebarOpen(true)}
+        aria-label="Odpri seznam zapiskov"
+      >
+        ☰ Zapiski
+      </button>
+
+      {isSidebarOpen && (
+        <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
       <Sidebar
         notes={notes}
         selectedId={selectedId}
@@ -172,6 +194,7 @@ function App() {
         onAddNote={handleAddNote}
         onDeleteNote={handleDeleteNote}
         locked={isUploadBusy}
+        isOpen={isSidebarOpen}
       />
       <NoteEditor note={selectedNote} onUpdateNote={handleUpdateNote} onBusyChange={setIsUploadBusy} />
     </div>
