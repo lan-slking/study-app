@@ -52,7 +52,8 @@ app.post("/api/notes", (req, res) => {
   const title = req.body.title ?? "";
   const content = req.body.content ?? "";
   const subject = req.body.subject ?? "";
-  const note = createNote({ title, content, subject });
+  const mode = req.body.mode ?? "";
+  const note = createNote({ title, content, subject, mode });
   res.status(201).json(note);
 });
 
@@ -62,8 +63,8 @@ app.put("/api/notes/:id", (req, res) => {
     return res.status(400).json({ error: "Neveljaven ID zapiska." });
   }
 
-  const { title, content, subject } = req.body;
-  const note = updateNote(id, { title, content, subject });
+  const { title, content, subject, lastQuizCorrect, lastQuizTotal } = req.body;
+  const note = updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal });
 
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });

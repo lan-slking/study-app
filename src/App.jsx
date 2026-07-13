@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import Home from './Home.jsx'
-import NoteEditor from './NoteEditor.jsx'
+import NovaSnov from './NovaSnov.jsx'
+import Zapiski from './Zapiski.jsx'
+import Quiz from './Quiz.jsx'
+import Flashcards from './Flashcards.jsx'
+import { subjectMeta } from './subjects.js'
 import './App.css'
 
 // How long to wait after the last keystroke before saving to the backend.
@@ -12,8 +16,7 @@ function App() {
   const [notes, setNotes] = useState([])
   const [selectedId, setSelectedId] = useState(null)
 
-  // 'home' shows the greeting + list of study topics; 'note' shows the
-  // full-screen editor for whichever note is selected.
+  // 'home' | 'wizard' | 'note' | 'quiz' | 'flashcards'
   const [view, setView] = useState('home')
 
   // Loading/error state for the initial fetch, so we can show something
@@ -25,14 +28,6 @@ function App() {
   // cancel a pending save for note B. Shape: { [noteId]: { timer, note } }.
   const pendingSavesRef = useRef({})
 
-  // True while NoteEditor has a photo-upload batch in progress. We lock
-  // leaving the note screen during this — NoteEditor doesn't unmount while
-  // a batch is running, so if you could navigate back to Home mid-upload,
-  // the finished photos would get inserted into whatever note the user
-  // switches to next instead of the one they were actually uploading to.
-  const [isUploadBusy, setIsUploadBusy] = useState(false)
-
-  // Find the full note object that matches the selected id.
   const selectedNote = notes.find((note) => note.id === selectedId) ?? null
 
   // Load all notes from the backend once, when the app first mounts.
@@ -92,8 +87,8 @@ function App() {
   }
 
   // If a note has a save waiting in the debounce timer, send it immediately
-  // instead of waiting — used when leaving the note screen or deleting, so
-  // an edit made a moment ago never gets silently dropped.
+  // instead of waiting — used when leaving the note screen, so an edit made a
+  // moment ago never gets silently dropped.
   function flushPendingSave(id) {
     const pending = pendingSavesRef.current[id]
     if (!pending) return
@@ -102,36 +97,25 @@ function App() {
     saveNoteToServer(id, pending.note)
   }
 
-  // Open a note in the full-screen editor.
   function handleSelectNote(id) {
     setSelectedId(id)
     setView('note')
   }
 
-  // Leave the note editor and return to Home. Blocked while a photo batch is
-  // in progress — see the comment on isUploadBusy above.
   function handleBackToHome() {
-    if (isUploadBusy) return
     if (selectedId !== null) flushPendingSave(selectedId)
     setView('home')
   }
 
-  // Create a brand new, empty note on the backend and open it right away.
-  async function handleAddNote() {
-    const response = await fetch('/api/notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: '', content: '' }),
-    })
-    const newNote = await response.json()
-    setNotes([newNote, ...notes])
-    setSelectedId(newNote.id)
+  // A brand new note is created only once the wizard finishes processing all
+  // photos — see NovaSnov.jsx. This just wires the result into app state.
+  function handleNoteCreated(note) {
+    setNotes((prev) => [note, ...prev])
+    setSelectedId(note.id)
     setView('note')
   }
 
-  // Remove a note by id, both locally and on the backend.
   function handleDeleteNote(id) {
-    // Cancel any pending save — there's no point saving a note we're deleting.
     const pending = pendingSavesRef.current[id]
     if (pending) {
       clearTimeout(pending.timer)
@@ -160,6 +144,24 @@ function App() {
     scheduleSave(selectedId, updatedNote)
   }
 
+  // Persist a finished quiz's score onto the note, so Home's progress ring
+  // reflects it next time — reuses the existing notes PUT endpoint.
+  function handleQuizFinished(correct, total) {
+    if (selectedId === null) return
+    setNotes((prev) =>
+      prev.map((note) =>
+        note.id === selectedId ? { ...note, last_quiz_correct: correct, last_quiz_total: total } : note,
+      ),
+    )
+    fetch(`/api/notes/${selectedId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lastQuizCorrect: correct, lastQuizTotal: total }),
+    }).catch((err) => {
+      console.error('Failed to save quiz result:', err)
+    })
+  }
+
   if (isLoading) {
     return <div className="app-status">Nalagam zapiske ...</div>
   }
@@ -170,19 +172,34 @@ function App() {
 
   return (
     <div className="app">
-      {view === 'note' && selectedNote ? (
-        <NoteEditor
+      {view === 'wizard' && <NovaSnov onCreated={handleNoteCreated} onCancel={() => setView('home')} />}
+
+      {view === 'note' && selectedNote && (
+        <Zapiski
           note={selectedNote}
           onUpdateNote={handleUpdateNote}
-          onBusyChange={setIsUploadBusy}
           onBack={handleBackToHome}
-          isBackLocked={isUploadBusy}
+          onOpenQuiz={() => setView('quiz')}
+          onOpenFlashcards={() => setView('flashcards')}
         />
-      ) : (
+      )}
+
+      {view === 'quiz' && selectedNote && (
+        <Quiz
+          note={selectedNote}
+          subjectColor={subjectMeta(selectedNote.subject).color}
+          onClose={() => setView('note')}
+          onFinished={handleQuizFinished}
+        />
+      )}
+
+      {view === 'flashcards' && selectedNote && <Flashcards note={selectedNote} onClose={() => setView('note')} />}
+
+      {view === 'home' && (
         <Home
           notes={notes}
           onSelectNote={handleSelectNote}
-          onAddNote={handleAddNote}
+          onAddNote={() => setView('wizard')}
           onDeleteNote={handleDeleteNote}
         />
       )}

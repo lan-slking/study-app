@@ -1,36 +1,161 @@
 /* --- Design tokens ---
-   Shared across the whole app; new screens should reuse these instead of
-   hardcoding colors, so every "main action" button stays visually consistent. */
+   Matches the Piflar design reference (see design-reference/styles.css) — a
+   dark, purple-glow theme. Every screen should reuse these instead of
+   hardcoding colors, so the app reads as one consistent design system. */
 :root {
-  /* Forces the light theme regardless of the OS/browser dark-mode setting —
-     without this, Chrome's forced-dark heuristics can re-theme native form
-     controls (inputs, textareas, selects) to dark, clashing with the app's
-     own light design. */
-  color-scheme: light;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-soft: #eef2ff;
-  --radius: 16px;
-  --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  color-scheme: dark;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Surfaces */
+  --background: oklch(16% 0.02 285);
+  --foreground: oklch(97% 0.01 285);
+  --card: oklch(21% 0.025 285);
+  --card-foreground: oklch(97% 0.01 285);
+  --secondary: oklch(26% 0.03 285);
+  --secondary-foreground: oklch(97% 0.01 285);
+  --muted: oklch(24% 0.025 285);
+  --muted-foreground: oklch(70% 0.02 285);
+  --border: oklch(30% 0.025 285);
+  --input: oklch(28% 0.025 285);
+
+  /* Accent */
+  --primary: oklch(68% 0.25 300);
+  --primary-foreground: oklch(14% 0.02 285);
+  --ring: oklch(68% 0.25 300);
+
+  /* Semantic */
+  --success: oklch(72% 0.18 155);
+  --success-foreground: oklch(14% 0.02 285);
+  --destructive: oklch(65% 0.22 25);
+  --destructive-foreground: oklch(98% 0.01 285);
+
+  /* Subject accent colors — the reference uses a fixed set of subjects
+     rather than free text; see the Nova snov wizard for the picker. */
+  --fizika: oklch(72% 0.19 250);
+  --matematika: oklch(72% 0.19 30);
+  --zgodovina: oklch(72% 0.16 70);
+  --kemija: oklch(74% 0.19 155);
+  --biologija: oklch(72% 0.18 195);
+  --slovenscina: oklch(72% 0.2 350);
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, oklch(68% 0.25 300), oklch(75% 0.2 260));
+  --gradient-mesh: radial-gradient(at 20% 10%, oklch(35% 0.22 300 / 0.5) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, oklch(35% 0.18 250 / 0.4) 0px, transparent 50%),
+    radial-gradient(at 50% 90%, oklch(35% 0.2 320 / 0.35) 0px, transparent 55%);
+
+  /* Shadows */
+  --shadow-card: 0 4px 20px -8px oklch(0% 0 0 / 0.5);
+  --shadow-glow: 0 10px 40px -10px oklch(68% 0.25 300 / 0.55);
+  --shadow-glow-lg: 0 20px 60px -15px oklch(68% 0.25 300 / 0.6);
+
+  --radius-sm: 0.75rem;
+  --radius: 1.25rem;
+  --radius-lg: 1.5rem;
+}
+
+/* --- Shared animation keyframes and tap feedback ---
+   Reused across every screen — see design-reference/styles.css for the
+   originals. */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-8px) rotate(2deg);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.anim-slide-up {
+  animation: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-slide-in-right {
+  animation: slide-in-right 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-pop-in {
+  animation: pop-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-float-slow {
+  display: inline-block;
+  animation: float-slow 3s ease-in-out infinite;
+}
+
+/* Tactile press feedback for any clickable element ("tap tap-active" in the
+   reference) — add alongside a component's own class. */
+.tap {
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s;
+}
+
+.tap:active {
+  transform: scale(0.96);
 }
 
 .app {
   display: flex;
   height: 100vh;
+  background-color: var(--background);
+  background-image: var(--gradient-mesh);
+  color: var(--foreground);
 }
 
 /* Full-screen states shown before the app has notes to render at all. */
 .app-status {
   height: 100vh;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  background-color: var(--background);
+  background-image: var(--gradient-mesh);
+  color: var(--muted-foreground);
   font-size: 1.1rem;
 }
 
 .app-status-error {
-  color: #dc2626;
+  color: var(--foreground);
   text-align: center;
   padding: 0 2rem;
 }
@@ -39,570 +164,1048 @@
   cursor: pointer;
   margin-top: 1rem;
   padding: 0.5rem 1rem;
-  border: 1px solid #dc2626;
-  border-radius: 6px;
-  background-color: white;
-  color: #dc2626;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
   font-size: 0.9rem;
+  font-weight: 700;
 }
 
-.app-status-error button:hover {
-  background-color: #fef2f2;
+.app-status-error button:active {
+  transform: scale(0.96);
 }
 
-/* --- Home screen --- */
-
-.home {
+/* --- Shared screen shell ---
+   Every top-level screen is a single, narrow (phone-width) column centered
+   on any viewport size — mirrors the reference's "mx-auto max-w-[440px]"
+   pattern used on every page. */
+.home,
+.wizard,
+.zapiski,
+.quiz-screen,
+.kartice-screen {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem 1.25rem 3rem;
-  max-width: 720px;
-  margin: 0 auto;
   width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 8rem;
+  display: flex;
+  flex-direction: column;
 }
 
-.home-header {
+/* Small circular icon button — back arrows, close buttons, the edit pencil. */
+.icon-button {
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--card);
+  color: var(--foreground);
+  font-size: 1.1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.icon-button-spacer {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+}
+
+/* Generic thin progress bar — quiz questions and flashcard rounds. */
+.progress-bar {
+  margin-top: 1rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background-color: var(--muted);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient-primary);
+  transition: width 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Segmented progress — the wizard's 3-step indicator. */
+.segmented-progress {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.segmented-progress-track {
+  flex: 1;
+  height: 0.375rem;
+  border-radius: 999px;
+  background-color: var(--muted);
+  overflow: hidden;
+}
+
+.segmented-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient-primary);
+  transition: width 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Shared text input style — wizard title, quiz short-answer. */
+.text-input {
+  margin-top: 0.5rem;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--card);
+  padding: 1rem 1.25rem;
+  font-family: inherit;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  box-shadow: var(--shadow-card);
+  outline: none;
+}
+
+.text-input::placeholder {
+  color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+}
+
+.text-input:focus {
+  box-shadow: var(--shadow-card), 0 0 0 2px var(--ring);
+}
+
+/* Primary/secondary action buttons, reused across every screen's main call
+   to action (wizard "Naprej", quiz "Potrdi odgovor", results actions, ...). */
+.primary-button {
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+  padding: 1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-glow-lg);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s, box-shadow 0.15s;
+}
+
+.primary-button:active {
+  transform: scale(0.97);
+}
+
+.primary-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+.secondary-button {
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--secondary);
+  color: var(--foreground);
+  padding: 1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.fixed-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 440px;
+  padding: 1rem 1.5rem 1.5rem;
+  background: linear-gradient(to top, var(--background) 65%, transparent);
+}
+
+/* Loading/error/results container shared by Quiz, Kartice, and the wizard's
+   error screen. */
+.status-panel {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  gap: 0.5rem;
-  padding: 2.5rem 0 2rem;
+  gap: 1rem;
+  padding: 2.5rem 1.5rem;
 }
 
-.home-greeting {
-  margin: 0;
-  font-size: 1.6rem;
+.status-message {
+  color: var(--muted-foreground);
+  font-size: 1rem;
 }
 
-.home-subtitle {
+.status-message-error {
+  color: var(--destructive);
+}
+
+.status-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 20rem;
+  margin-top: 0.5rem;
+}
+
+.quiz-results-heading {
+  margin: 0.5rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.dot-list-card {
+  width: 100%;
+  max-width: 22rem;
+  border-radius: var(--radius);
+  background-color: var(--card);
+  padding: 1rem 1.25rem;
+  text-align: left;
+}
+
+.dot-list-title {
   margin: 0 0 0.5rem;
-  color: #6b7280;
-  font-size: 1.05rem;
-}
-
-.home-hint {
-  margin-top: 0.75rem;
-  color: #9ca3af;
+  font-weight: 700;
   font-size: 0.9rem;
 }
 
-.btn-primary {
-  cursor: pointer;
-  border: none;
-  border-radius: 999px;
-  background-color: var(--accent);
-  color: white;
-  font-weight: 600;
-  transition: background-color 0.15s ease, transform 0.1s ease;
-}
-
-.btn-primary:hover {
-  background-color: var(--accent-hover);
-}
-
-.btn-primary:active {
-  transform: scale(0.98);
-}
-
-.btn-large {
-  padding: 0.9rem 1.75rem;
-  font-size: 1.05rem;
-  box-shadow: var(--shadow);
-}
-
-.note-card-grid {
+.dot-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+.dot-list li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.dot-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background-color: var(--primary);
+}
+
+/* Spinner used on every "please wait" screen. */
+.processing-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  border: 3px solid var(--muted);
+  border-top-color: var(--primary);
+  animation: spin 0.8s linear infinite;
+}
+
+/* --- Progress ring (Home cards + Kviz results) --- */
+
+.progress-ring {
+  position: relative;
+  flex-shrink: 0;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.9rem;
+  place-items: center;
+}
+
+.progress-ring-svg {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-fill {
+  transition: stroke-dashoffset 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.progress-ring-label {
+  position: absolute;
+  font-weight: 700;
+}
+
+/* --- Domov (Home) --- */
+
+.home-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.home-logo {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius);
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+  font-weight: 900;
+  font-size: 1.125rem;
+  box-shadow: var(--shadow-glow);
+}
+
+.home-wordmark {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.home-greeting {
+  margin-top: 2rem;
+}
+
+.home-greeting h1 {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.home-greeting p {
+  margin: 0.5rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 1rem;
+}
+
+.home-cta {
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  padding: 1.25rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-glow-lg);
+  text-align: left;
+}
+
+.home-cta-icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--background) 25%, transparent);
+  color: var(--primary-foreground);
+  font-size: 1.5rem;
+  backdrop-filter: blur(6px);
+}
+
+.home-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.home-cta-title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--primary-foreground);
+}
+
+.home-cta-subtitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--primary-foreground) 70%, transparent);
+}
+
+.home-cta-arrow {
+  font-size: 1.5rem;
+  color: var(--primary-foreground);
+  flex-shrink: 0;
+}
+
+.home-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2.5rem;
+}
+
+.home-section-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.home-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.home-empty-hint {
+  margin-top: 1.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+}
+
+.note-card-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.note-card-wrap {
+  position: relative;
 }
 
 .note-card {
-  position: relative;
-  border-radius: var(--radius);
-  background-color: white;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.note-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
-}
-
-.note-card-body {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 1.1rem 1.2rem;
-  border: none;
-  background: none;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: none;
+  border-radius: var(--radius-lg);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
   text-align: left;
-  font: inherit;
+  color: inherit;
+  font-family: inherit;
+}
+
+.note-card-icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  font-size: 1.5rem;
+}
+
+.note-card-info {
+  min-width: 0;
+  flex: 1;
 }
 
 .note-card-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: #1f2333;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.subject-chip {
-  display: inline-block;
-  padding: 0.2rem 0.7rem;
+.note-card-meta {
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.note-card-subject {
   border-radius: 999px;
-  color: white;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.note-card-score {
-  font-size: 0.85rem;
-  color: #6b7280;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .note-card-delete {
   position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
-  width: 1.8rem;
-  height: 1.8rem;
+  top: -0.4rem;
+  right: -0.4rem;
+  width: 1.75rem;
+  height: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 999px;
-  background-color: #f4f4f5;
-  color: #9ca3af;
+  background-color: var(--secondary);
+  color: var(--muted-foreground);
   cursor: pointer;
-  font-size: 0.85rem;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  font-size: 0.75rem;
+  box-shadow: var(--shadow-card);
 }
 
 .note-card-delete:hover {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
 }
 
-@media (min-width: 640px) {
-  .note-card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  }
-}
+/* --- Nova snov (wizard) --- */
 
-/* --- Editor --- */
-
-.editor {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 1.5rem;
-}
-
-.back-button {
-  align-self: flex-start;
-  cursor: pointer;
-  border: none;
-  background: none;
-  color: var(--accent);
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.4rem 0;
-  margin-bottom: 0.75rem;
-}
-
-.back-button:hover {
-  color: var(--accent-hover);
-}
-
-.back-button:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
-
-.editor-toolbar {
+.wizard-topbar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.title-input {
-  flex: 1;
-  font-size: 1.5rem;
-  font-weight: bold;
-  border: none;
-  outline: none;
-}
-
-.upload-mode-select {
+  justify-content: space-between;
   flex-shrink: 0;
-  cursor: pointer;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background-color: white;
-  font-size: 0.9rem;
 }
 
-.upload-mode-select:disabled {
-  cursor: default;
-  opacity: 0.6;
+.wizard-step-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
 }
 
-.upload-button {
-  flex-shrink: 0;
-  cursor: pointer;
-  padding: 0.5rem 0.9rem;
-  border: 1px solid #4f46e5;
-  border-radius: 6px;
-  background-color: white;
-  color: #4f46e5;
-  font-size: 0.9rem;
-}
-
-.upload-button:hover {
-  background-color: #eef2ff;
-}
-
-.upload-button:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-.study-mode-button {
-  flex-shrink: 0;
-  cursor: pointer;
-  padding: 0.5rem 0.9rem;
-  border: 1px solid #7c3aed;
-  border-radius: 6px;
-  background-color: white;
-  color: #7c3aed;
-  font-size: 0.9rem;
-}
-
-.study-mode-button:hover {
-  background-color: #f5f3ff;
-}
-
-.study-mode-button:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-/* --- Upload batch list (per-photo progress, shown while photos are processing) --- */
-
-.upload-batch-list {
-  list-style: none;
-  margin: 0 0 1rem;
-  padding: 0;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.upload-batch-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
-  border-bottom: 1px solid #eee;
-}
-
-.upload-batch-item:last-child {
-  border-bottom: none;
-}
-
-.upload-batch-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.upload-batch-status {
-  flex-shrink: 0;
-  color: #666;
-}
-
-.upload-batch-item.status-done .upload-batch-status {
-  color: #16a34a;
-}
-
-.upload-batch-item.status-error .upload-batch-status {
-  color: #dc2626;
-}
-
-.upload-retry-button {
-  flex-shrink: 0;
-  cursor: pointer;
-  padding: 0.25rem 0.6rem;
-  border: 1px solid #dc2626;
-  border-radius: 6px;
-  background-color: white;
-  color: #dc2626;
-  font-size: 0.8rem;
-}
-
-.upload-retry-button:hover {
-  background-color: #fef2f2;
-}
-
-/* Guided empty state shown on a brand new note — nudges toward the photo
-   flow, which is the fastest path from "blank note" to "studying". */
-.empty-note-hint {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2.5rem 1rem;
-  margin-bottom: 1rem;
-  border: 1px dashed #ccc;
-  border-radius: 12px;
-  color: #555;
-  font-size: 1.05rem;
-}
-
-.content-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  resize: none;
-  font-size: 1rem;
-  line-height: 1.5;
-  font-family: inherit;
-}
-
-/* --- Edit / View toggle --- */
-
-.display-mode-toggle {
-  display: inline-flex;
-  align-self: flex-start;
-  margin-bottom: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 999px;
-  padding: 2px;
-  background-color: #f4f4f5;
-}
-
-.display-mode-toggle button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  padding: 0.35rem 0.9rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  color: #555;
-}
-
-.display-mode-toggle button.active {
-  background-color: #4f46e5;
-  color: white;
-}
-
-/* --- Rendered Markdown ("View" mode) ---
-   Colors to tweak: the accent indigo (#4f46e5, matches the rest of the app),
-   the highlight tint on bold terms (#eef2ff), and the formula block colors. */
-
-.markdown-view {
-  flex: 1;
-  overflow-y: auto;
-  line-height: 1.7;
-  font-size: 1rem;
-}
-
-.markdown-view-empty {
-  color: #888;
-}
-
-.markdown-view h1 {
-  font-size: 1.8rem;
-  color: #4f46e5;
-  margin: 0 0 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e0e7ff;
-}
-
-.markdown-view h2 {
-  font-size: 1.25rem;
-  color: #4338ca;
-  margin: 1.5rem 0 0.75rem;
-}
-
-.markdown-view h3 {
-  font-size: 1.05rem;
-  color: #4338ca;
-  margin: 1.25rem 0 0.5rem;
-}
-
-.markdown-view p {
-  margin: 0 0 0.75rem;
-}
-
-.markdown-view strong {
-  color: #3730a3;
-  background-color: #eef2ff;
-  padding: 0.05rem 0.3rem;
-  border-radius: 4px;
-}
-
-.markdown-view ul,
-.markdown-view ol {
-  margin: 0 0 0.75rem;
-  padding-left: 1.4rem;
-}
-
-.markdown-view li {
-  margin-bottom: 0.35rem;
-}
-
-/* Formulas: the prompts ask Gemini to wrap each formula in single backticks
-   on its own line, which Markdown renders as an inline <code> — style it like
-   a distinct block so it stands out from surrounding prose. */
-.markdown-view code {
-  display: inline-block;
-  margin: 0.25rem 0;
-  padding: 0.3rem 0.6rem;
-  background-color: #f4f4f5;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
-  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
-  font-size: 0.95rem;
-  color: #1e293b;
-}
-
-/* --- Study modes (Quiz / Flashcards) ---
-   Shared container + status/action styles, then quiz-specific and
-   flashcard-specific rules below. Accent color is purple (#7c3aed) to
-   visually distinguish study actions from the indigo upload/edit actions. */
-
-.study-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  overflow-y: auto;
-  padding: 1rem 0;
-  text-align: center;
-}
-
-.study-status {
-  color: #666;
+.wizard-step {
   margin-top: 2rem;
 }
 
-.study-status-error {
-  color: #dc2626;
+.wizard-step h1 {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
-.study-panel-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-.study-panel-actions button {
-  cursor: pointer;
-  padding: 0.5rem 1rem;
-  border: 1px solid #7c3aed;
-  border-radius: 6px;
-  background-color: white;
-  color: #7c3aed;
+.wizard-subtitle {
+  margin: 0.5rem 0 0;
+  color: var(--muted-foreground);
   font-size: 0.9rem;
 }
 
-.study-panel-actions button:hover {
-  background-color: #f5f3ff;
+.wizard-label {
+  display: block;
+  margin-top: 1.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
 }
 
-/* --- Quiz --- */
+.wizard-subject-grid {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
 
-.quiz-progress,
-.flashcard-progress {
-  color: #888;
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
+.subject-chip-button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.subject-chip-emoji {
+  margin-right: 0.35rem;
+}
+
+.photo-dropzone {
+  cursor: pointer;
+  margin-top: 1rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: none;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.photo-dropzone-icon {
+  font-size: 2rem;
+}
+
+.photo-preview-grid {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.photo-preview {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-preview-badge {
+  position: absolute;
+  bottom: 0.35rem;
+  left: 0.35rem;
+  min-width: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--background) 60%, transparent);
+  color: var(--foreground);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.photo-preview-remove {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background-color: color-mix(in oklab, var(--background) 60%, transparent);
+  color: var(--foreground);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.mode-option-list {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mode-option {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-lg);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  padding: 1rem 1.25rem;
+  text-align: left;
+  color: var(--foreground);
+}
+
+.mode-option.selected {
+  box-shadow: 0 0 0 2px var(--primary), var(--shadow-glow);
+  background: color-mix(in oklab, var(--primary) 15%, var(--card));
+}
+
+.mode-option-emoji {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.mode-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.mode-option-title {
+  font-weight: 700;
+}
+
+.mode-option-subtitle {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+
+.processing-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.processing-message {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+/* --- Zapiski --- */
+
+.zapiski-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.zapiski-header {
+  margin-top: 1.5rem;
+}
+
+.zapiski-subject-chip {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.zapiski-title {
+  margin: 0.75rem 0 0;
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.zapiski-title-input {
+  display: block;
+  margin-top: 0.75rem;
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  background: none;
+  padding: 0.25rem 0;
+  font-family: inherit;
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: var(--foreground);
+  outline: none;
+}
+
+.zapiski-meta {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+
+.zapiski-content {
+  margin-top: 2rem;
+  flex: 1;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: color-mix(in oklab, var(--foreground) 90%, transparent);
+}
+
+.zapiski-content-empty {
+  color: var(--muted-foreground);
+}
+
+.zapiski-content h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.zapiski-content h2 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.zapiski-content h3 {
+  margin: 1.5rem 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.zapiski-content h3::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 1.1em;
+  border-radius: 999px;
+  background-color: var(--subject-color, var(--primary));
+  flex-shrink: 0;
+}
+
+.zapiski-content p {
+  margin: 0 0 0.75rem;
+}
+
+.zapiski-content em {
+  color: var(--muted-foreground);
+}
+
+.zapiski-content strong {
+  font-weight: 700;
+  color: var(--subject-color, var(--primary));
+  background-color: color-mix(in oklab, var(--subject-color, var(--primary)) 15%, transparent);
+  border-radius: 4px;
+  padding: 0 0.25rem;
+}
+
+.zapiski-content blockquote {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--subject-color, var(--primary));
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in oklab, var(--muted) 60%, transparent);
+  font-style: italic;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+.zapiski-content ul,
+.zapiski-content ol {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.zapiski-content li {
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.zapiski-content li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background-color: var(--subject-color, var(--primary));
+}
+
+.zapiski-content code {
+  display: block;
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--card);
+  text-align: center;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 1rem;
+  color: var(--subject-color, var(--primary));
+}
+
+.zapiski-textarea {
+  margin-top: 2rem;
+  flex: 1;
+  min-height: 16rem;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  padding: 1.25rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--foreground);
+  outline: none;
+  resize: vertical;
+}
+
+.zapiski-actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 440px;
+  padding: 0.75rem 1rem 1.25rem;
+}
+
+.zapiski-actionbar-inner {
+  display: flex;
+  gap: 0.75rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--card) 80%, transparent);
+  padding: 0.5rem;
+  box-shadow: var(--shadow-glow-lg);
+  backdrop-filter: blur(16px);
+}
+
+.action-button {
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: var(--radius);
+  padding: 1rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.action-button-primary {
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-glow);
+}
+
+.action-button-secondary {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+.action-button-success {
+  background-color: var(--success);
+  color: var(--success-foreground);
+  box-shadow: var(--shadow-glow);
+}
+
+.action-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+/* --- Kviz --- */
+
+.quiz-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.quiz-counter {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.quiz-body {
+  margin-top: 2.5rem;
+}
+
+.quiz-topic {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
 }
 
 .quiz-question {
-  font-size: 1.2rem;
-  font-weight: 600;
-  max-width: 40rem;
-  margin: 0 0 1.5rem;
+  margin: 0.5rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.3;
 }
 
 .quiz-options {
+  margin-top: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  width: 100%;
-  max-width: 30rem;
+  gap: 0.75rem;
 }
 
 .quiz-option {
   cursor: pointer;
-  padding: 0.7rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: white;
-  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  padding: 1rem;
   text-align: left;
+  color: var(--foreground);
 }
 
 .quiz-option.selected {
-  border-color: #7c3aed;
-  background-color: #f5f3ff;
+  box-shadow: 0 0 0 2px var(--primary);
 }
 
 .quiz-option.correct {
-  border-color: #16a34a;
-  background-color: #f0fdf4;
-  color: #166534;
+  box-shadow: 0 0 0 2px var(--success);
+  background-color: color-mix(in oklab, var(--success) 15%, var(--card));
 }
 
 .quiz-option.incorrect {
-  border-color: #dc2626;
-  background-color: #fef2f2;
-  color: #991b1b;
+  box-shadow: 0 0 0 2px var(--destructive);
+  background-color: color-mix(in oklab, var(--destructive) 15%, var(--card));
 }
 
 .quiz-option:disabled {
   cursor: default;
 }
 
-.quiz-short-answer-input {
-  width: 100%;
-  max-width: 30rem;
-  padding: 0.6rem 0.9rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+.quiz-option-letter {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  font-weight: 700;
+}
+
+.quiz-option-text {
+  flex: 1;
   font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .quiz-feedback {
-  max-width: 30rem;
   margin-top: 1.25rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
   font-size: 0.9rem;
-}
-
-.quiz-feedback.correct {
-  background-color: #f0fdf4;
-  color: #166534;
-}
-
-.quiz-feedback.incorrect {
-  background-color: #fef2f2;
-  color: #991b1b;
 }
 
 .quiz-feedback p {
@@ -613,101 +1216,171 @@
   margin-bottom: 0;
 }
 
-.quiz-score {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #7c3aed;
+.quiz-feedback-title {
+  font-weight: 700;
 }
 
-.quiz-review {
-  margin-top: 1rem;
-  color: #444;
+.quiz-feedback.correct {
+  background-color: color-mix(in oklab, var(--success) 18%, transparent);
+  color: var(--success);
 }
 
-.quiz-review ul {
-  display: inline-block;
-  text-align: left;
-  margin: 0.5rem 0 0;
+.quiz-feedback.incorrect {
+  background-color: color-mix(in oklab, var(--destructive) 18%, transparent);
+  color: var(--destructive);
 }
 
-/* --- Flashcards --- */
+/* --- Kartice (flashcards) --- */
 
-.flashcard {
+.kartice-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.kartice-counters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.kartice-known {
+  color: var(--success);
+}
+
+.kartice-repeat {
+  color: var(--muted-foreground);
+}
+
+.flip-card-stage {
+  position: relative;
+  margin-top: 2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.flip-card-shadow {
+  position: absolute;
+  top: 0.5rem;
+  left: 1.25rem;
+  right: 1.25rem;
+  height: 16rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--card) 60%, transparent);
+  box-shadow: var(--shadow-card);
+}
+
+.flip-card-shadow-1 {
+  transform: scale(0.94);
+}
+
+.flip-card-shadow-2 {
+  top: 1rem;
+  left: 2.25rem;
+  right: 2.25rem;
+  background-color: color-mix(in oklab, var(--card) 40%, transparent);
+  transform: scale(0.88);
+}
+
+.flip-card {
+  position: relative;
   cursor: pointer;
   width: 100%;
-  max-width: 26rem;
-  min-height: 12rem;
+  max-width: 24rem;
+  border: none;
+  background: none;
+  perspective: 1200px;
+}
+
+.flip-card-inner {
+  position: relative;
+  height: 18rem;
+  width: 100%;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-style: preserve-3d;
+}
+
+.flip-card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-glow-lg);
+  backface-visibility: hidden;
+}
+
+.flip-card-face-front {
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+}
+
+.flip-card-face-back {
+  background-color: var(--card);
+  color: var(--foreground);
+  transform: rotateY(180deg);
+}
+
+.flip-card-face-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.flip-card-face-content {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  background-color: white;
-  font-size: 1.15rem;
+  padding: 0 0.5rem;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.3;
 }
 
-.flashcard.flipped {
-  background-color: #f5f3ff;
-  border-color: #7c3aed;
+.flip-card-face-brand {
+  align-self: flex-end;
+  font-size: 0.7rem;
+  opacity: 0.6;
 }
 
-.flashcard-hint {
-  color: #888;
-  font-size: 0.85rem;
-  margin-top: 0.75rem;
+.flip-card-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
 }
 
-.flashcard-answer-buttons {
+.kartice-actions {
+  margin-top: 1.5rem;
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
 }
 
-.flashcard-answer-buttons button {
-  cursor: pointer;
-  padding: 0.6rem 1.3rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  border: 1px solid;
-}
-
-.flashcard-know {
-  border-color: #16a34a;
-  background-color: #f0fdf4;
-  color: #166534;
-}
-
-.flashcard-know:hover {
-  background-color: #dcfce7;
-}
-
-.flashcard-dont-know {
-  border-color: #dc2626;
-  background-color: #fef2f2;
-  color: #991b1b;
-}
-
-.flashcard-dont-know:hover {
-  background-color: #fee2e2;
-}
-
-/* --- Mobile layout (phones and narrow tablets) --- */
-@media (max-width: 768px) {
-  .editor-toolbar {
-    flex-wrap: wrap;
-  }
-
-  .title-input {
-    flex-basis: 100%;
-  }
-
-  .quiz-options,
-  .quiz-short-answer-input,
-  .quiz-question,
-  .flashcard {
-    max-width: 100%;
+/* --- Mobile layout ---
+   The shared screen shell above is already mobile-first (single narrow
+   column); this just tightens side padding on very small phones. */
+@media (max-width: 400px) {
+  .home,
+  .wizard,
+  .zapiski,
+  .quiz-screen,
+  .kartice-screen {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
   }
 }

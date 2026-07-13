@@ -8,7 +8,7 @@ function Flashcards({ note, onClose }) {
   const [loadError, setLoadError] = useState(null)
 
   const [totalCount, setTotalCount] = useState(0)
-  const [roundNumber, setRoundNumber] = useState(1)
+  const [knownCount, setKnownCount] = useState(0)
   const [currentRound, setCurrentRound] = useState([])
   const [nextRound, setNextRound] = useState([])
   const [cardIndex, setCardIndex] = useState(0)
@@ -35,7 +35,7 @@ function Flashcards({ note, onClose }) {
         throw new Error(data.error || 'Kartončkov ni bilo mogoče ustvariti.')
       }
       setTotalCount(data.cards.length)
-      setRoundNumber(1)
+      setKnownCount(0)
       setCurrentRound(data.cards)
       setNextRound([])
       setCardIndex(0)
@@ -51,6 +51,7 @@ function Flashcards({ note, onClose }) {
   function handleAnswer(knewIt) {
     const currentCard = currentRound[cardIndex]
     const updatedNextRound = knewIt ? nextRound : [...nextRound, currentCard]
+    if (knewIt) setKnownCount((n) => n + 1)
 
     if (cardIndex + 1 < currentRound.length) {
       setNextRound(updatedNextRound)
@@ -65,7 +66,6 @@ function Flashcards({ note, onClose }) {
       setCurrentRound(updatedNextRound)
       setNextRound([])
       setCardIndex(0)
-      setRoundNumber(roundNumber + 1)
       setIsFlipped(false)
     } else {
       setIsComplete(true)
@@ -74,70 +74,100 @@ function Flashcards({ note, onClose }) {
 
   if (status === 'loading') {
     return (
-      <div className="study-panel">
-        <p className="study-status">Ustvarjam kartončke iz tvojega zapiska...</p>
-      </div>
+      <main className="kartice-screen status-panel">
+        <div className="processing-spinner" />
+        <p className="status-message">Ustvarjam kartončke iz tvojega zapiska ...</p>
+      </main>
     )
   }
 
   if (status === 'error') {
     return (
-      <div className="study-panel">
-        <p className="study-status study-status-error">{loadError}</p>
-        <div className="study-panel-actions">
-          <button type="button" onClick={loadCards}>Poskusi znova</button>
-          <button type="button" onClick={onClose}>Nazaj na zapisek</button>
+      <main className="kartice-screen status-panel">
+        <p className="status-message status-message-error">{loadError}</p>
+        <div className="status-actions">
+          <button type="button" className="primary-button" onClick={loadCards}>
+            Poskusi znova
+          </button>
+          <button type="button" className="secondary-button tap" onClick={onClose}>
+            Nazaj na zapisek
+          </button>
         </div>
-      </div>
+      </main>
     )
   }
 
   if (isComplete) {
     return (
-      <div className="study-panel">
-        <h2>Vse kartončke znaš!</h2>
-        <p>Pregledal si {totalCount} kartončkov.</p>
-        <div className="study-panel-actions">
-          <button type="button" onClick={loadCards}>Znova</button>
-          <button type="button" onClick={onClose}>Nazaj na zapisek</button>
+      <main className="kartice-screen status-panel">
+        <h1 className="quiz-results-heading">Vse kartončke znaš! 🎉</h1>
+        <p className="status-message">Pregledal/a si {totalCount} kartončkov.</p>
+        <div className="status-actions">
+          <button type="button" className="primary-button" onClick={onClose}>
+            Nazaj na zapisek
+          </button>
+          <button type="button" className="secondary-button tap" onClick={loadCards}>
+            Znova
+          </button>
         </div>
-      </div>
+      </main>
     )
   }
 
   const card = currentRound[cardIndex]
+  const progressPercent = (cardIndex / currentRound.length) * 100
 
   return (
-    <div className="study-panel">
-      <div className="flashcard-progress">
-        Krog {roundNumber} · kartonček {cardIndex + 1} / {currentRound.length}
-      </div>
-
-      <button
-        type="button"
-        className={`flashcard ${isFlipped ? 'flipped' : ''}`}
-        onClick={() => setIsFlipped(!isFlipped)}
-      >
-        {isFlipped ? card.definition : card.term}
-      </button>
-
-      {!isFlipped ? (
-        <p className="flashcard-hint">Klikni kartonček, da vidiš odgovor.</p>
-      ) : (
-        <div className="flashcard-answer-buttons">
-          <button type="button" className="flashcard-dont-know" onClick={() => handleAnswer(false)}>
-            Ne znam
-          </button>
-          <button type="button" className="flashcard-know" onClick={() => handleAnswer(true)}>
-            Znam
-          </button>
+    <main className="kartice-screen">
+      <div className="kartice-topbar">
+        <button type="button" className="icon-button tap" onClick={onClose} aria-label="Zapri">
+          ✕
+        </button>
+        <div className="kartice-counters">
+          <span className="kartice-known">✅ {knownCount}</span>
+          <span className="kartice-repeat">🔁 {nextRound.length}</span>
         </div>
-      )}
-
-      <div className="study-panel-actions">
-        <button type="button" onClick={onClose}>Nazaj na zapisek</button>
+        <div className="icon-button-spacer" />
       </div>
-    </div>
+
+      <div className="progress-bar">
+        <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+      </div>
+
+      <div className="flip-card-stage">
+        <div className="flip-card-shadow flip-card-shadow-1" />
+        <div className="flip-card-shadow flip-card-shadow-2" />
+        <button
+          type="button"
+          className="flip-card anim-pop-in"
+          onClick={() => setIsFlipped((v) => !v)}
+          key={`${cardIndex}-${nextRound.length}`}
+        >
+          <div className="flip-card-inner" style={{ transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0)' }}>
+            <div className="flip-card-face flip-card-face-front">
+              <span className="flip-card-face-label">Pojem</span>
+              <div className="flip-card-face-content">{card.term}</div>
+              <span className="flip-card-face-brand">Piflar</span>
+            </div>
+            <div className="flip-card-face flip-card-face-back">
+              <span className="flip-card-face-label">Razlaga</span>
+              <div className="flip-card-face-content">{card.definition}</div>
+              <span className="flip-card-face-brand">Piflar</span>
+            </div>
+          </div>
+        </button>
+        <p className="flip-card-hint">Klikni za razlago ↺</p>
+      </div>
+
+      <div className="kartice-actions">
+        <button type="button" className="action-button action-button-secondary tap" onClick={() => handleAnswer(false)}>
+          🔁 Še ne
+        </button>
+        <button type="button" className="action-button action-button-success tap" onClick={() => handleAnswer(true)}>
+          ✅ Znam
+        </button>
+      </div>
+    </main>
   )
 }
 

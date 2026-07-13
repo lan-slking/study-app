@@ -44,8 +44,19 @@ export async function initDb() {
   if (!existingColumns.includes("subject")) {
     db.run("ALTER TABLE notes ADD COLUMN subject TEXT NOT NULL DEFAULT ''");
   }
-  if (!existingColumns.includes("last_quiz_score")) {
-    db.run("ALTER TABLE notes ADD COLUMN last_quiz_score INTEGER");
+  // last_quiz_score (a flat percentage) was replaced by correct/total below,
+  // which can show a "6/8" fraction and drive a progress ring — a column left
+  // over from an earlier pass is harmless and stays untouched if present.
+  if (!existingColumns.includes("last_quiz_correct")) {
+    db.run("ALTER TABLE notes ADD COLUMN last_quiz_correct INTEGER");
+  }
+  if (!existingColumns.includes("last_quiz_total")) {
+    db.run("ALTER TABLE notes ADD COLUMN last_quiz_total INTEGER");
+  }
+  // Which prompt mode ("full" | "summary") produced this note's content —
+  // shown on the Zapiski screen so the student remembers what they picked.
+  if (!existingColumns.includes("mode")) {
+    db.run("ALTER TABLE notes ADD COLUMN mode TEXT NOT NULL DEFAULT ''");
   }
 
   persist();
@@ -69,8 +80,8 @@ export function getNoteById(id) {
   return note;
 }
 
-export function createNote({ title, content, subject = "" }) {
-  db.run("INSERT INTO notes (title, content, subject) VALUES (?, ?, ?)", [title, content, subject]);
+export function createNote({ title, content, subject = "", mode = "" }) {
+  db.run("INSERT INTO notes (title, content, subject, mode) VALUES (?, ?, ?, ?)", [title, content, subject, mode]);
 
   const idStmt = db.prepare("SELECT last_insert_rowid() AS id");
   idStmt.step();
@@ -81,18 +92,19 @@ export function createNote({ title, content, subject = "" }) {
   return getNoteById(id);
 }
 
-export function updateNote(id, { title, content, subject, lastQuizScore }) {
+export function updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal }) {
   const existing = getNoteById(id);
   if (!existing) return null;
 
   db.run(
-    `UPDATE notes SET title = ?, content = ?, subject = ?, last_quiz_score = ?, updated_at = datetime('now')
-     WHERE id = ?`,
+    `UPDATE notes SET title = ?, content = ?, subject = ?, last_quiz_correct = ?, last_quiz_total = ?,
+     updated_at = datetime('now') WHERE id = ?`,
     [
       title !== undefined ? title : existing.title,
       content !== undefined ? content : existing.content,
       subject !== undefined ? subject : existing.subject,
-      lastQuizScore !== undefined ? lastQuizScore : existing.last_quiz_score,
+      lastQuizCorrect !== undefined ? lastQuizCorrect : existing.last_quiz_correct,
+      lastQuizTotal !== undefined ? lastQuizTotal : existing.last_quiz_total,
       id,
     ],
   );

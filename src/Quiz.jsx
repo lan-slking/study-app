@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import ProgressRing from './ProgressRing.jsx'
+
+const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
 // Quiz walks through a set of Gemini-generated questions for one note, one at
 // a time: answer, get graded with an explanation, then move on. At the end it
 // shows a score and which sections of the note to review.
-function Quiz({ note, onClose }) {
+function Quiz({ note, subjectColor, onClose, onFinished }) {
   // 'loading' | 'ready' | 'error' — covers fetching the quiz itself.
   const [status, setStatus] = useState('loading')
   const [loadError, setLoadError] = useState(null)
@@ -101,6 +104,8 @@ function Quiz({ note, onClose }) {
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex(currentIndex + 1)
     } else {
+      const correctCount = results.filter((r) => r.correct).length
+      onFinished?.(correctCount, questions.length)
       setIsFinished(true)
     }
   }
@@ -118,21 +123,26 @@ function Quiz({ note, onClose }) {
 
   if (status === 'loading') {
     return (
-      <div className="study-panel">
-        <p className="study-status">Ustvarjam kviz iz tvojega zapiska...</p>
-      </div>
+      <main className="quiz-screen status-panel">
+        <div className="processing-spinner" />
+        <p className="status-message">Ustvarjam kviz iz tvojega zapiska ...</p>
+      </main>
     )
   }
 
   if (status === 'error') {
     return (
-      <div className="study-panel">
-        <p className="study-status study-status-error">{loadError}</p>
-        <div className="study-panel-actions">
-          <button type="button" onClick={loadQuiz}>Poskusi znova</button>
-          <button type="button" onClick={onClose}>Nazaj na zapisek</button>
+      <main className="quiz-screen status-panel">
+        <p className="status-message status-message-error">{loadError}</p>
+        <div className="status-actions">
+          <button type="button" className="primary-button" onClick={loadQuiz}>
+            Poskusi znova
+          </button>
+          <button type="button" className="secondary-button tap" onClick={onClose}>
+            Nazaj na zapisek
+          </button>
         </div>
-      </div>
+      </main>
     )
   }
 
@@ -141,16 +151,17 @@ function Quiz({ note, onClose }) {
     const missedSections = [...new Set(results.filter((r) => !r.correct).map((r) => r.section))]
 
     return (
-      <div className="study-panel">
-        <h2>Rezultat kviza</h2>
-        <p className="quiz-score">
+      <main className="quiz-screen status-panel">
+        <ProgressRing correct={correctCount} total={questions.length} color={subjectColor} size={88} strokeWidth={7} />
+        <h1 className="quiz-results-heading">Kviz končan! 🎉</h1>
+        <p className="status-message">
           {correctCount} / {questions.length} pravilnih odgovorov
         </p>
 
         {missedSections.length > 0 && (
-          <div className="quiz-review">
-            <p>Ponovi te dele zapiska:</p>
-            <ul>
+          <div className="dot-list-card">
+            <p className="dot-list-title">Ponovi te dele zapiska:</p>
+            <ul className="dot-list">
               {missedSections.map((section) => (
                 <li key={section}>{section}</li>
               ))}
@@ -158,73 +169,94 @@ function Quiz({ note, onClose }) {
           </div>
         )}
 
-        <div className="study-panel-actions">
-          <button type="button" onClick={handleRestart}>Nov kviz</button>
-          <button type="button" onClick={onClose}>Nazaj na zapisek</button>
+        <div className="status-actions">
+          <button type="button" className="primary-button" onClick={onClose}>
+            Nazaj na zapisek
+          </button>
+          <button type="button" className="secondary-button tap" onClick={handleRestart}>
+            Nov kviz
+          </button>
         </div>
-      </div>
+      </main>
     )
   }
 
+  const progressPercent = (currentIndex / questions.length) * 100
+
   return (
-    <div className="study-panel">
-      <div className="quiz-progress">
-        Vprašanje {currentIndex + 1} / {questions.length}
+    <main className="quiz-screen">
+      <div className="quiz-topbar">
+        <button type="button" className="icon-button tap" onClick={onClose} aria-label="Zapri">
+          ✕
+        </button>
+        <span className="quiz-counter">
+          {currentIndex + 1} / {questions.length}
+        </span>
+        <div className="icon-button-spacer" />
       </div>
 
-      <p className="quiz-question">{currentQuestion.question}</p>
+      <div className="progress-bar">
+        <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+      </div>
 
-      {currentQuestion.type === 'multiple_choice' ? (
-        <div className="quiz-options">
-          {currentQuestion.options.map((option, index) => {
-            let optionClass = 'quiz-option'
-            if (feedback) {
-              if (index === currentQuestion.correctIndex) optionClass += ' correct'
-              else if (index === selectedOption) optionClass += ' incorrect'
-            } else if (index === selectedOption) {
-              optionClass += ' selected'
-            }
-            return (
-              <button
-                key={index}
-                type="button"
-                className={optionClass}
-                disabled={!!feedback}
-                onClick={() => setSelectedOption(index)}
-              >
-                {option}
-              </button>
-            )
-          })}
-        </div>
-      ) : (
-        <input
-          type="text"
-          className="quiz-short-answer-input"
-          value={shortAnswerInput}
-          onChange={(e) => setShortAnswerInput(e.target.value)}
-          disabled={!!feedback || isGrading}
-          placeholder="Vnesi odgovor..."
-        />
-      )}
+      <div className="quiz-body anim-slide-in-right" key={currentIndex}>
+        <span className="quiz-topic">{currentQuestion.section}</span>
+        <h1 className="quiz-question">{currentQuestion.question}</h1>
 
-      {gradeError && <p className="study-status-error">{gradeError}</p>}
+        {currentQuestion.type === 'multiple_choice' ? (
+          <div className="quiz-options">
+            {currentQuestion.options.map((option, index) => {
+              let optionClass = 'quiz-option tap'
+              if (feedback) {
+                if (index === currentQuestion.correctIndex) optionClass += ' correct'
+                else if (index === selectedOption) optionClass += ' incorrect'
+              } else if (index === selectedOption) {
+                optionClass += ' selected'
+              }
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  className={optionClass}
+                  disabled={!!feedback}
+                  onClick={() => setSelectedOption(index)}
+                >
+                  <span className="quiz-option-letter">{OPTION_LETTERS[index]}</span>
+                  <span className="quiz-option-text">{option}</span>
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <input
+            type="text"
+            className="text-input"
+            value={shortAnswerInput}
+            onChange={(e) => setShortAnswerInput(e.target.value)}
+            disabled={!!feedback || isGrading}
+            placeholder="Vnesi odgovor..."
+          />
+        )}
 
-      {feedback && (
-        <div className={`quiz-feedback ${feedback.correct ? 'correct' : 'incorrect'}`}>
-          <p>{feedback.correct ? 'Pravilno!' : 'Napačno.'}</p>
-          <p>{feedback.explanation}</p>
-        </div>
-      )}
+        {gradeError && <p className="status-message-error">{gradeError}</p>}
 
-      <div className="study-panel-actions">
+        {feedback && (
+          <div className={`quiz-feedback ${feedback.correct ? 'correct' : 'incorrect'}`}>
+            <p className="quiz-feedback-title">{feedback.correct ? 'Pravilno! ✅' : 'Napačno.'}</p>
+            <p>{feedback.explanation}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="fixed-footer">
         {feedback ? (
-          <button type="button" onClick={handleNext}>
-            {currentIndex + 1 < questions.length ? 'Naprej' : 'Zaključi kviz'}
+          <button type="button" className="primary-button" onClick={handleNext}>
+            {currentIndex + 1 < questions.length ? 'Naprej →' : 'Zaključi kviz →'}
           </button>
         ) : (
           <button
             type="button"
+            className="primary-button"
             onClick={handleSubmitAnswer}
             disabled={
               isGrading ||
@@ -234,9 +266,8 @@ function Quiz({ note, onClose }) {
             {isGrading ? 'Ocenjujem...' : 'Potrdi odgovor'}
           </button>
         )}
-        <button type="button" onClick={onClose}>Nazaj na zapisek</button>
       </div>
-    </div>
+    </main>
   )
 }
 

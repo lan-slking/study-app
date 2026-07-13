@@ -11,6 +11,7 @@ body,
 }
 
 body {
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  color: #111;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, sans-serif);
+  background-color: var(--background, #1a1424);
+  color: var(--foreground, #f2f0f5);
 }

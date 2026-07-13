@@ -43,3 +43,6 @@ Thumbs.db
 
 # Local SQLite database (server/db.js) — user data, not source
 server/data.sqlite
+
+# Cloned Lovable design-reference prototype — reference only, never our source
+design-reference/
