@@ -32,3 +32,22 @@ export async function generateValidatedJson(ai, { model, prompt, validate }) {
 
   throw lastError;
 }
+
+// Recognizes the two Gemini failure modes worth a specific, actionable
+// message instead of a generic "something went wrong, try again" — retrying
+// a quota error immediately just fails again, so the student needs to know
+// that up front. Returns null for anything else, so the caller can fall back
+// to its own generic message.
+export function describeGeminiError(err) {
+  const message = err?.message ?? "";
+
+  if (err?.status === 429 || /RESOURCE_EXHAUSTED/i.test(message)) {
+    return "Dnevna omejitev brezplačnega Gemini API-ja je izčrpana. Počakaj malo (limit se obnovi čez nekaj ur) ali poskusi znova jutri.";
+  }
+
+  if (/api key not valid/i.test(message)) {
+    return "Ključ GEMINI_API_KEY je bil zavrnjen. Preveri ga v server/.env.";
+  }
+
+  return null;
+}

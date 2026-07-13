@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import Sidebar from './Sidebar.jsx'
+import Home from './Home.jsx'
 import NoteEditor from './NoteEditor.jsx'
 import './App.css'
 
@@ -12,25 +12,24 @@ function App() {
   const [notes, setNotes] = useState([])
   const [selectedId, setSelectedId] = useState(null)
 
+  // 'home' shows the greeting + list of study topics; 'note' shows the
+  // full-screen editor for whichever note is selected.
+  const [view, setView] = useState('home')
+
   // Loading/error state for the initial fetch, so we can show something
   // sensible instead of a blank screen while notes are loading.
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
 
-  // On narrow screens the sidebar becomes a slide-in drawer instead of
-  // always being visible next to the editor — see the mobile media query
-  // in App.css. Irrelevant (and harmless) on wider screens.
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-
   // Tracks in-flight debounce timers per note id, so typing in note A doesn't
   // cancel a pending save for note B. Shape: { [noteId]: { timer, note } }.
   const pendingSavesRef = useRef({})
 
-  // True while NoteEditor has a photo-upload batch in progress. We lock note
-  // switching/creating/deleting during this — NoteEditor doesn't unmount
-  // between note switches, so if you could switch notes mid-upload, the
-  // finished photos would get inserted into whichever note is selected when
-  // they complete, not the note you were actually uploading to.
+  // True while NoteEditor has a photo-upload batch in progress. We lock
+  // leaving the note screen during this — NoteEditor doesn't unmount while
+  // a batch is running, so if you could navigate back to Home mid-upload,
+  // the finished photos would get inserted into whatever note the user
+  // switches to next instead of the one they were actually uploading to.
   const [isUploadBusy, setIsUploadBusy] = useState(false)
 
   // Find the full note object that matches the selected id.
@@ -49,7 +48,6 @@ function App() {
         const data = await response.json()
         if (cancelled) return
         setNotes(data)
-        setSelectedId(data[0]?.id ?? null)
       } catch {
         if (!cancelled) {
           setLoadError(
@@ -76,8 +74,6 @@ function App() {
         body: JSON.stringify({ title: note.title, content: note.content }),
       })
     } catch (err) {
-      // Saving failed silently for now — Stage 5 (robustness) will surface
-      // this kind of error in the UI instead of just logging it.
       console.error('Failed to save note:', err)
     }
   }
@@ -96,8 +92,8 @@ function App() {
   }
 
   // If a note has a save waiting in the debounce timer, send it immediately
-  // instead of waiting — used when switching notes or deleting, so an edit
-  // made a moment ago never gets silently dropped.
+  // instead of waiting — used when leaving the note screen or deleting, so
+  // an edit made a moment ago never gets silently dropped.
   function flushPendingSave(id) {
     const pending = pendingSavesRef.current[id]
     if (!pending) return
@@ -106,19 +102,22 @@ function App() {
     saveNoteToServer(id, pending.note)
   }
 
-  // Select a different note, making sure any unsaved edit on the current one
-  // is sent to the server first. Also closes the mobile sidebar drawer, since
-  // picking a note means you want to look at it now.
+  // Open a note in the full-screen editor.
   function handleSelectNote(id) {
-    if (isUploadBusy) return
-    if (selectedId !== null) flushPendingSave(selectedId)
     setSelectedId(id)
-    setIsSidebarOpen(false)
+    setView('note')
   }
 
-  // Create a brand new, empty note on the backend and select it right away.
-  async function handleAddNote() {
+  // Leave the note editor and return to Home. Blocked while a photo batch is
+  // in progress — see the comment on isUploadBusy above.
+  function handleBackToHome() {
     if (isUploadBusy) return
+    if (selectedId !== null) flushPendingSave(selectedId)
+    setView('home')
+  }
+
+  // Create a brand new, empty note on the backend and open it right away.
+  async function handleAddNote() {
     const response = await fetch('/api/notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -127,13 +126,11 @@ function App() {
     const newNote = await response.json()
     setNotes([newNote, ...notes])
     setSelectedId(newNote.id)
-    setIsSidebarOpen(false)
+    setView('note')
   }
 
-  // Remove a note by id, both locally and on the backend. If we deleted the
-  // selected note, clear the selection.
+  // Remove a note by id, both locally and on the backend.
   function handleDeleteNote(id) {
-    if (isUploadBusy) return
     // Cancel any pending save — there's no point saving a note we're deleting.
     const pending = pendingSavesRef.current[id]
     if (pending) {
@@ -173,30 +170,22 @@ function App() {
 
   return (
     <div className="app">
-      {/* Only visible on narrow screens (see App.css) — opens the sidebar drawer. */}
-      <button
-        type="button"
-        className="mobile-sidebar-toggle"
-        onClick={() => setIsSidebarOpen(true)}
-        aria-label="Odpri seznam zapiskov"
-      >
-        ☰ Zapiski
-      </button>
-
-      {isSidebarOpen && (
-        <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
+      {view === 'note' && selectedNote ? (
+        <NoteEditor
+          note={selectedNote}
+          onUpdateNote={handleUpdateNote}
+          onBusyChange={setIsUploadBusy}
+          onBack={handleBackToHome}
+          isBackLocked={isUploadBusy}
+        />
+      ) : (
+        <Home
+          notes={notes}
+          onSelectNote={handleSelectNote}
+          onAddNote={handleAddNote}
+          onDeleteNote={handleDeleteNote}
+        />
       )}
-
-      <Sidebar
-        notes={notes}
-        selectedId={selectedId}
-        onSelectNote={handleSelectNote}
-        onAddNote={handleAddNote}
-        onDeleteNote={handleDeleteNote}
-        locked={isUploadBusy}
-        isOpen={isSidebarOpen}
-      />
-      <NoteEditor note={selectedNote} onUpdateNote={handleUpdateNote} onBusyChange={setIsUploadBusy} />
     </div>
   )
 }

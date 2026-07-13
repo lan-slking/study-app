@@ -18,7 +18,7 @@ const STATUS_LABELS = {
 
 // NoteEditor shows the title and content of the currently selected note,
 // and lets the user edit them. If no note is selected, it shows a placeholder.
-function NoteEditor({ note, onUpdateNote, onBusyChange }) {
+function NoteEditor({ note, onUpdateNote, onBusyChange, onBack, isBackLocked }) {
   // The current batch of photos being turned into notes (see handleFilesSelected).
   // Each item: { id, file, status: 'pending'|'compressing'|'uploading'|'done'|'error', error, notes }
   const [batch, setBatch] = useState([])
@@ -70,14 +70,6 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
     // not depended on, to avoid re-triggering as onUpdateNote changes it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batch])
-
-  if (!note) {
-    return (
-      <main className="editor empty-state">
-        <p>Izberi zapisek na levi ali ustvari novega, da začneš.</p>
-      </main>
-    )
-  }
 
   function handleUploadClick() {
     fileInputRef.current?.click()
@@ -177,6 +169,10 @@ function NoteEditor({ note, onUpdateNote, onBusyChange }) {
 
   return (
     <main className="editor">
+      <button type="button" className="back-button" onClick={onBack} disabled={isBackLocked}>
+        ← Moje snovi
+      </button>
+
       <div className="editor-toolbar">
         <input
           className="title-input"

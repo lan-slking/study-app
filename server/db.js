@@ -37,6 +37,17 @@ export async function initDb() {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // Added for the Home screen redesign (subject chips + last quiz score on
+  // each card). Existing rows just pick up the column defaults.
+  const existingColumns = db.exec("PRAGMA table_info(notes)")[0].values.map((row) => row[1]);
+  if (!existingColumns.includes("subject")) {
+    db.run("ALTER TABLE notes ADD COLUMN subject TEXT NOT NULL DEFAULT ''");
+  }
+  if (!existingColumns.includes("last_quiz_score")) {
+    db.run("ALTER TABLE notes ADD COLUMN last_quiz_score INTEGER");
+  }
+
   persist();
 }
 
@@ -58,8 +69,8 @@ export function getNoteById(id) {
   return note;
 }
 
-export function createNote({ title, content }) {
-  db.run("INSERT INTO notes (title, content) VALUES (?, ?)", [title, content]);
+export function createNote({ title, content, subject = "" }) {
+  db.run("INSERT INTO notes (title, content, subject) VALUES (?, ?, ?)", [title, content, subject]);
 
   const idStmt = db.prepare("SELECT last_insert_rowid() AS id");
   idStmt.step();
@@ -70,10 +81,20 @@ export function createNote({ title, content }) {
   return getNoteById(id);
 }
 
-export function updateNote(id, { title, content }) {
+export function updateNote(id, { title, content, subject, lastQuizScore }) {
+  const existing = getNoteById(id);
+  if (!existing) return null;
+
   db.run(
-    "UPDATE notes SET title = ?, content = ?, updated_at = datetime('now') WHERE id = ?",
-    [title, content, id],
+    `UPDATE notes SET title = ?, content = ?, subject = ?, last_quiz_score = ?, updated_at = datetime('now')
+     WHERE id = ?`,
+    [
+      title !== undefined ? title : existing.title,
+      content !== undefined ? content : existing.content,
+      subject !== undefined ? subject : existing.subject,
+      lastQuizScore !== undefined ? lastQuizScore : existing.last_quiz_score,
+      id,
+    ],
   );
   persist();
   return getNoteById(id);

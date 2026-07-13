@@ -1,4 +1,19 @@
-/* Overall two-column layout: sidebar on the left, editor on the right. */
+/* --- Design tokens ---
+   Shared across the whole app; new screens should reuse these instead of
+   hardcoding colors, so every "main action" button stays visually consistent. */
+:root {
+  /* Forces the light theme regardless of the OS/browser dark-mode setting —
+     without this, Chrome's forced-dark heuristics can re-theme native form
+     controls (inputs, textareas, selects) to dark, clashing with the app's
+     own light design. */
+  color-scheme: light;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-soft: #eef2ff;
+  --radius: 16px;
+  --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
 .app {
   display: flex;
   height: 100vh;
@@ -35,91 +50,151 @@
   background-color: #fef2f2;
 }
 
-/* --- Sidebar --- */
+/* --- Home screen --- */
 
-.sidebar {
-  width: 260px;
-  flex-shrink: 0;
-  background-color: #f4f4f5;
-  border-right: 1px solid #ddd;
+.home {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 1.25rem 3rem;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.home-header {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-}
-
-.sidebar-header {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  border-bottom: 1px solid #ddd;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 2.5rem 0 2rem;
 }
 
-.sidebar-header h2 {
+.home-greeting {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.6rem;
 }
 
-.sidebar-header button {
+.home-subtitle {
+  margin: 0 0 0.5rem;
+  color: #6b7280;
+  font-size: 1.05rem;
+}
+
+.home-hint {
+  margin-top: 0.75rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
   cursor: pointer;
-  padding: 0.4rem 0.6rem;
   border: none;
-  border-radius: 6px;
-  background-color: #4f46e5;
+  border-radius: 999px;
+  background-color: var(--accent);
   color: white;
-  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
-.sidebar-header button:hover {
-  background-color: #4338ca;
+.btn-primary:hover {
+  background-color: var(--accent-hover);
 }
 
-.note-list {
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-large {
+  padding: 0.9rem 1.75rem;
+  font-size: 1.05rem;
+  box-shadow: var(--shadow);
+}
+
+.note-card-grid {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
 }
 
-.note-item {
+.note-card {
+  position: relative;
+  border-radius: var(--radius);
+  background-color: white;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.note-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.note-card-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1.1rem 1.2rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.note-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1f2333;
+}
+
+.subject-chip {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.note-card-score {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.note-card-delete {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 1.8rem;
+  height: 1.8rem;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.note-item.selected {
-  background-color: #e0e7ff;
-}
-
-.note-title-button {
-  flex: 1;
-  text-align: left;
-  padding: 0.75rem 1rem;
-  background: none;
+  justify-content: center;
   border: none;
+  border-radius: 999px;
+  background-color: #f4f4f5;
+  color: #9ca3af;
   cursor: pointer;
-  font-size: 0.95rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.85rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.delete-button {
-  background: none;
-  border: none;
-  color: #999;
-  cursor: pointer;
-  padding: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.delete-button:hover {
+.note-card-delete:hover {
+  background-color: #fee2e2;
   color: #dc2626;
 }
 
-.empty {
-  padding: 1rem;
-  color: #888;
-  font-size: 0.9rem;
+@media (min-width: 640px) {
+  .note-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
 }
 
 /* --- Editor --- */
@@ -131,10 +206,25 @@
   padding: 1.5rem;
 }
 
-.editor.empty-state {
-  align-items: center;
-  justify-content: center;
-  color: #888;
+.back-button {
+  align-self: flex-start;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.4rem 0;
+  margin-bottom: 0.75rem;
+}
+
+.back-button:hover {
+  color: var(--accent-hover);
+}
+
+.back-button:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .editor-toolbar {
@@ -604,75 +694,8 @@
   background-color: #fee2e2;
 }
 
-/* --- Mobile sidebar drawer ---
-   Hidden/inert on wide screens; only takes effect under the media query
-   below. The toggle button and backdrop are rendered unconditionally in
-   App.jsx, but only ever visible on narrow screens. */
-
-.mobile-sidebar-toggle {
-  display: none;
-}
-
-.sidebar-backdrop {
-  display: none;
-}
-
-/* --- Mobile layout (phones and narrow tablets) ---
-   The sidebar becomes a slide-in drawer instead of a permanent column, so
-   the editor (where students actually spend their time) gets the full
-   screen width. */
+/* --- Mobile layout (phones and narrow tablets) --- */
 @media (max-width: 768px) {
-  .app {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .mobile-sidebar-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    position: fixed;
-    top: 0.75rem;
-    left: 0.75rem;
-    z-index: 30;
-    border: none;
-    border-radius: 999px;
-    padding: 0.5rem 1rem;
-    background-color: #4f46e5;
-    color: white;
-    font-size: 0.85rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  .sidebar-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.35);
-    z-index: 20;
-  }
-
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 25;
-    width: 85%;
-    max-width: 320px;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease;
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  .editor {
-    padding-top: 4rem;
-  }
-
   .editor-toolbar {
     flex-wrap: wrap;
   }

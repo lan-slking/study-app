@@ -4,7 +4,7 @@ import cors from "cors";
 import multer from "multer";
 import { GoogleGenAI } from "@google/genai";
 import { initDb, getAllNotes, getNoteById, createNote, updateNote, deleteNote } from "./db.js";
-import { generateValidatedJson } from "./geminiJson.js";
+import { generateValidatedJson, describeGeminiError } from "./geminiJson.js";
 
 // Node's ES modules support top-level await, so we can wait for the database
 // to be ready before the server starts accepting requests.
@@ -51,7 +51,8 @@ app.get("/api/notes", (req, res) => {
 app.post("/api/notes", (req, res) => {
   const title = req.body.title ?? "";
   const content = req.body.content ?? "";
-  const note = createNote({ title, content });
+  const subject = req.body.subject ?? "";
+  const note = createNote({ title, content, subject });
   res.status(201).json(note);
 });
 
@@ -61,9 +62,8 @@ app.put("/api/notes/:id", (req, res) => {
     return res.status(400).json({ error: "Neveljaven ID zapiska." });
   }
 
-  const title = req.body.title ?? "";
-  const content = req.body.content ?? "";
-  const note = updateNote(id, { title, content });
+  const { title, content, subject } = req.body;
+  const note = updateNote(id, { title, content, subject });
 
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
@@ -165,13 +165,7 @@ app.post("/api/process-image", upload.single("image"), async (req, res) => {
   } catch (err) {
     console.error("Gemini API error:", err);
 
-    // Gemini returns a 400 with "API key not valid" for a malformed/revoked key —
-    // surface that distinctly so it's obvious what to fix, instead of a generic message.
-    const isInvalidKey = /api key not valid/i.test(err?.message ?? "");
-    const message = isInvalidKey
-      ? "Ključ GEMINI_API_KEY je bil zavrnjen. Preveri ga v server/.env."
-      : "Pri obdelavi fotografije je prišlo do napake. Poskusi znova.";
-
+    const message = describeGeminiError(err) || "Pri obdelavi fotografije je prišlo do napake. Poskusi znova.";
     res.status(500).json({ error: message });
   }
 });
@@ -328,7 +322,8 @@ app.post("/api/notes/:id/quiz", async (req, res) => {
     res.json(quiz);
   } catch (err) {
     console.error("Quiz generation error:", err);
-    res.status(500).json({ error: "Kviza ni bilo mogoče ustvariti. Poskusi znova." });
+    const message = describeGeminiError(err) || "Kviza ni bilo mogoče ustvariti. Poskusi znova.";
+    res.status(500).json({ error: message });
   }
 });
 
@@ -357,7 +352,8 @@ app.post("/api/notes/:id/flashcards", async (req, res) => {
     res.json(flashcards);
   } catch (err) {
     console.error("Flashcard generation error:", err);
-    res.status(500).json({ error: "Kartončkov ni bilo mogoče ustvariti. Poskusi znova." });
+    const message = describeGeminiError(err) || "Kartončkov ni bilo mogoče ustvariti. Poskusi znova.";
+    res.status(500).json({ error: message });
   }
 });
 
@@ -382,7 +378,8 @@ app.post("/api/grade-answer", async (req, res) => {
     res.json(grade);
   } catch (err) {
     console.error("Answer grading error:", err);
-    res.status(500).json({ error: "Odgovora ni bilo mogoče oceniti. Poskusi znova." });
+    const message = describeGeminiError(err) || "Odgovora ni bilo mogoče oceniti. Poskusi znova.";
+    res.status(500).json({ error: message });
   }
 });
 
