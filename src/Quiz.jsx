@@ -238,6 +238,9 @@ function Quiz({ quizEndpoint, gradeEndpoint = '/api/grade-answer', subjectColor,
                 >
                   <span className="quiz-option-letter">{OPTION_LETTERS[index]}</span>
                   <span className="quiz-option-text">{option}</span>
+                  {feedback && index === currentQuestion.correctIndex && (
+                    <span className="quiz-option-check anim-pop-in">✓</span>
+                  )}
                 </button>
               )
             })}
@@ -256,8 +259,16 @@ function Quiz({ quizEndpoint, gradeEndpoint = '/api/grade-answer', subjectColor,
         {gradeError && <p className="status-message-error">{gradeError}</p>}
 
         {feedback && (
-          <div className={`quiz-feedback ${feedback.correct ? 'correct' : 'incorrect'}`}>
-            <p className="quiz-feedback-title">{feedback.correct ? 'Pravilno! ✅' : 'Napačno.'}</p>
+          <div className={`quiz-feedback anim-pop-in ${feedback.correct ? 'correct' : 'incorrect'}`}>
+            <p className="quiz-feedback-title">
+              {feedback.correct ? (
+                <>
+                  <span className="quiz-feedback-check">✓</span> Pravilno!
+                </>
+              ) : (
+                'Napačno.'
+              )}
+            </p>
             <p>{feedback.explanation}</p>
           </div>
         )}
