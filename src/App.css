@@ -64,9 +64,12 @@
   --shadow-glow: 0 10px 40px -10px oklch(72% 0.16 162 / 0.4);
   --shadow-glow-lg: 0 20px 60px -15px oklch(72% 0.16 162 / 0.45);
 
+  /* One consistent large radius for cards (16px) regardless of which of
+     these two a given rule happens to reference — kept as two names for
+     now so existing rules didn't all need touching individually. */
   --radius-sm: 0.75rem;
-  --radius: 1.25rem;
-  --radius-lg: 1.5rem;
+  --radius: 1rem;
+  --radius-lg: 1rem;
 }
 
 /* --- Shared animation keyframes and tap feedback ---
@@ -203,7 +206,7 @@
 .app-status-error {
   color: var(--foreground);
   text-align: center;
-  padding: 0 2rem;
+  padding: 0 2.5rem;
 }
 
 .app-status-error button {
@@ -275,7 +278,6 @@
   background-color: var(--card);
   color: var(--foreground);
   font-size: 1.1rem;
-  box-shadow: var(--shadow-card);
 }
 
 .icon-button-spacer {
@@ -331,12 +333,11 @@
   border: none;
   border-radius: var(--radius);
   background-color: var(--card);
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem;
   font-family: inherit;
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--foreground);
-  box-shadow: var(--shadow-card);
   outline: none;
 }
 
@@ -345,7 +346,7 @@
 }
 
 .text-input:focus {
-  box-shadow: var(--shadow-card), 0 0 0 2px var(--ring);
+  box-shadow: 0 0 0 2px var(--ring);
 }
 
 /* Primary/secondary action buttons, reused across every screen's main call
@@ -380,12 +381,12 @@
   width: 100%;
   border: none;
   border-radius: var(--radius);
-  background-color: var(--secondary);
-  color: var(--foreground);
+  background: none;
+  color: var(--muted-foreground);
   padding: 1rem;
   font-family: inherit;
   font-size: 1rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .fixed-footer {
@@ -424,7 +425,7 @@
 .status-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
   width: 100%;
   max-width: 20rem;
   margin-top: 0.5rem;
@@ -441,7 +442,7 @@
   max-width: 22rem;
   border-radius: var(--radius);
   background-color: var(--card);
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem;
   text-align: left;
 }
 
@@ -457,14 +458,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
   color: var(--muted-foreground);
   font-size: 0.9rem;
 }
 
 .dot-list li {
   position: relative;
-  padding-left: 1.1rem;
+  padding-left: 1rem;
 }
 
 .dot-list li::before {
@@ -525,8 +526,7 @@
   gap: 0.3rem;
   border-radius: 999px;
   background-color: var(--card);
-  box-shadow: var(--shadow-card);
-  padding: 0.4rem 0.75rem;
+  padding: 0.5rem 1rem;
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -561,7 +561,7 @@
 }
 
 .home-greeting {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
 }
 
 .home-greeting h1 {
@@ -584,9 +584,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: 1.75rem;
-  padding: 1.25rem 1.5rem;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 1.5rem 1.5rem;
   border: none;
   border-radius: var(--radius-lg);
   background: var(--gradient-primary);
@@ -633,15 +633,14 @@
 }
 
 .review-section {
-  margin-top: 2rem;
-  padding: 1.1rem 1.25rem;
+  margin-top: 2.5rem;
+  padding: 1rem 1.5rem;
   border-radius: var(--radius-lg);
   background-color: color-mix(in oklab, var(--primary) 12%, var(--card));
-  box-shadow: var(--shadow-card);
 }
 
 .review-section-title {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1rem;
   font-size: 1rem;
   font-weight: 800;
 }
@@ -660,11 +659,11 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   border: none;
   border-radius: var(--radius);
   background-color: var(--card);
-  padding: 0.6rem 0.9rem;
+  padding: 0.5rem 1rem;
   text-align: left;
   color: var(--foreground);
   font-family: inherit;
@@ -688,7 +687,7 @@
 }
 
 .zapiski-test-date {
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   max-width: 16rem;
 }
 
@@ -723,7 +722,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .note-card-wrap {
@@ -740,7 +739,6 @@
   border: none;
   border-radius: var(--radius-lg);
   background-color: var(--card);
-  box-shadow: var(--shadow-card);
   text-align: left;
   color: inherit;
   font-family: inherit;
@@ -781,7 +779,7 @@
 .note-card-subject {
   border-radius: 999px;
   padding: 0.15rem 0.5rem;
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -802,7 +800,6 @@
   color: var(--muted-foreground);
   cursor: pointer;
   font-size: 0.75rem;
-  box-shadow: var(--shadow-card);
 }
 
 .note-card-delete:hover {
@@ -827,7 +824,7 @@
 }
 
 .wizard-step {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
 }
 
 .wizard-step h1 {
@@ -845,16 +842,16 @@
 
 .wizard-subject-badge {
   display: inline-block;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
   border-radius: 999px;
-  padding: 0.3rem 0.8rem;
+  padding: 0.3rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
 }
 
 .wizard-label {
   display: block;
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -868,7 +865,7 @@
 .text-link-button {
   cursor: pointer;
   align-self: flex-start;
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
   border: none;
   background: none;
   padding: 0;
@@ -883,7 +880,7 @@
 }
 
 .wizard-subject-grid {
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -893,7 +890,7 @@
   cursor: pointer;
   border: none;
   border-radius: var(--radius);
-  padding: 0.6rem 1rem;
+  padding: 0.5rem 1rem;
   font-family: inherit;
   font-size: 0.9rem;
   font-weight: 700;
@@ -929,7 +926,7 @@
   padding: 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .photo-preview {
@@ -938,7 +935,6 @@
   border-radius: var(--radius);
   overflow: hidden;
   background-color: var(--card);
-  box-shadow: var(--shadow-card);
 }
 
 .photo-preview img {
@@ -980,10 +976,10 @@
 }
 
 .mode-option-list {
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .mode-option {
@@ -995,8 +991,7 @@
   border: none;
   border-radius: var(--radius-lg);
   background-color: var(--card);
-  box-shadow: var(--shadow-card);
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem;
   text-align: left;
   color: var(--foreground);
 }
@@ -1082,7 +1077,7 @@
   border-radius: var(--radius-sm);
   background: none;
   color: var(--foreground);
-  padding: 0.6rem 0.7rem;
+  padding: 0.5rem;
   text-align: left;
   font-family: inherit;
   font-size: 0.9rem;
@@ -1106,7 +1101,7 @@
 
 .share-link-text {
   margin: 0.25rem 0.25rem 0.5rem;
-  padding: 0.5rem 0.6rem;
+  padding: 0.5rem;
   border-radius: var(--radius-sm);
   background-color: var(--secondary);
   color: var(--muted-foreground);
@@ -1122,7 +1117,7 @@
 .zapiski-subject-chip {
   display: inline-block;
   border-radius: 999px;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 1rem;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1134,7 +1129,6 @@
   align-items: center;
   border-radius: 999px;
   background-color: var(--card);
-  box-shadow: var(--shadow-card);
   padding: 0.5rem 1rem;
   font-size: 0.85rem;
   font-weight: 700;
@@ -1142,14 +1136,14 @@
 }
 
 .shared-note-footer {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   text-align: center;
   color: var(--muted-foreground);
   font-size: 0.8rem;
 }
 
 .zapiski-title {
-  margin: 0.75rem 0 0;
+  margin: 1rem 0 0;
   font-size: 1.875rem;
   font-weight: 800;
   line-height: 1.2;
@@ -1158,7 +1152,7 @@
 
 .zapiski-title-input {
   display: block;
-  margin-top: 0.75rem;
+  margin-top: 1rem;
   width: 100%;
   border: none;
   border-bottom: 2px solid var(--border);
@@ -1181,7 +1175,7 @@
 }
 
 .zapiski-content {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   flex: 1;
   font-size: 0.95rem;
   line-height: 1.7;
@@ -1193,14 +1187,14 @@
 }
 
 .zapiski-content h1 {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1rem;
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.01em;
 }
 
 .zapiski-content h2 {
-  margin: 1.5rem 0 0.75rem;
+  margin: 1.5rem 0 1rem;
   font-size: 1.35rem;
   font-weight: 800;
 }
@@ -1225,7 +1219,7 @@
 }
 
 .zapiski-content p {
-  margin: 0 0 0.75rem;
+  margin: 0 0 1rem;
 }
 
 .zapiski-content em {
@@ -1241,8 +1235,8 @@
 }
 
 .zapiski-content blockquote {
-  margin: 0.75rem 0;
-  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
   border-left: 3px solid var(--subject-color, var(--primary));
   border-radius: var(--radius-sm);
   background-color: color-mix(in oklab, var(--muted) 60%, transparent);
@@ -1254,7 +1248,7 @@
 .zapiski-content ul,
 .zapiski-content ol {
   list-style: none;
-  margin: 0.75rem 0;
+  margin: 1rem 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -1263,7 +1257,7 @@
 
 .zapiski-content li {
   position: relative;
-  padding-left: 1.25rem;
+  padding-left: 1.5rem;
 }
 
 .zapiski-content li::before {
@@ -1280,8 +1274,7 @@
 .zapiski-content code {
   display: block;
   margin: 1rem 0;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border);
+  padding: 1rem 1.5rem;
   border-radius: var(--radius);
   background-color: var(--card);
   text-align: center;
@@ -1291,15 +1284,14 @@
 }
 
 .zapiski-textarea {
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   flex: 1;
   min-height: 16rem;
   width: 100%;
   border: none;
   border-radius: var(--radius);
   background-color: var(--card);
-  box-shadow: var(--shadow-card);
-  padding: 1.25rem;
+  padding: 1.5rem;
   font-family: inherit;
   font-size: 0.95rem;
   line-height: 1.7;
@@ -1315,12 +1307,12 @@
   bottom: 0;
   margin: 0 auto;
   max-width: 440px;
-  padding: 0.75rem 1rem 1.25rem;
+  padding: 1rem 1rem 1.5rem;
 }
 
 .zapiski-actionbar-inner {
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
   border-radius: var(--radius-lg);
   background-color: color-mix(in oklab, var(--card) 80%, transparent);
   padding: 0.5rem;
@@ -1335,10 +1327,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   border: none;
   border-radius: var(--radius);
-  padding: 0.9rem 0.4rem;
+  padding: 1rem 0.5rem;
   font-family: inherit;
   font-size: 0.85rem;
   font-weight: 800;
@@ -1354,8 +1346,8 @@
 }
 
 .action-button-secondary {
-  background-color: var(--secondary);
-  color: var(--foreground);
+  background: none;
+  color: var(--muted-foreground);
 }
 
 .action-button-success {
@@ -1425,7 +1417,7 @@
   margin-top: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .quiz-option {
@@ -1436,7 +1428,6 @@
   border: none;
   border-radius: var(--radius);
   background-color: var(--card);
-  box-shadow: var(--shadow-card);
   padding: 1rem;
   text-align: left;
   color: var(--foreground);
@@ -1478,9 +1469,9 @@
 }
 
 .quiz-feedback {
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
   border-radius: var(--radius);
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.5rem;
   font-size: 0.9rem;
 }
 
@@ -1518,7 +1509,7 @@
 .kartice-counters {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -1533,13 +1524,13 @@
 
 .flip-card-stage {
   position: relative;
-  margin-top: 2rem;
+  margin-top: 2.5rem;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .flip-card-shadow {
@@ -1643,7 +1634,7 @@
 .kartice-actions {
   margin-top: 1.5rem;
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
   flex-shrink: 0;
 }
 
@@ -1657,8 +1648,8 @@
   .quiz-screen,
   .kartice-screen,
   .dopolnjevanje-screen {
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 }
 
@@ -1708,7 +1699,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 2rem;
+    gap: 2.5rem;
   }
 
   .home-greeting {
@@ -1767,7 +1758,7 @@
 
   .zapiski-actionbar-inner {
     flex-direction: column;
-    padding: 0.75rem;
+    padding: 1rem;
   }
 
   .zapiski-actionbar-inner .action-button {
@@ -1792,7 +1783,6 @@
     padding: 2.5rem;
     background-color: var(--card);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
   }
 
   .wizard .fixed-footer,
@@ -1814,7 +1804,6 @@
     padding: 2.5rem;
     background-color: var(--card);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
   }
 
   /* Larger typography for the more focused desktop card layouts. */
@@ -1856,7 +1845,11 @@
   }
 
   .secondary-button:hover {
-    background-color: color-mix(in oklab, var(--secondary) 80%, var(--foreground));
+    color: var(--foreground);
+  }
+
+  .action-button-secondary:hover {
+    color: var(--foreground);
   }
 
   .action-button:hover:not(:disabled) {
@@ -1872,7 +1865,7 @@
   }
 
   .mode-option:hover {
-    box-shadow: 0 0 0 2px var(--border), var(--shadow-card);
+    box-shadow: 0 0 0 2px var(--border);
   }
 
   .quiz-option:hover:not(:disabled) {
