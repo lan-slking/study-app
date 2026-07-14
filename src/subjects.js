@@ -50,7 +50,7 @@ export function subjectMeta(key) {
     return { ...found, color: `var(--${found.key})` }
   }
 
-  return { key, label: key, emoji: CUSTOM_EMOJI, color: `oklch(72% 0.19 ${hashHue(key.toLowerCase())})` }
+  return { key, label: key, emoji: CUSTOM_EMOJI, color: `oklch(62% 0.1 ${hashHue(key.toLowerCase())})` }
 }
 
 // Custom subjects already in use, derived from existing notes rather than a

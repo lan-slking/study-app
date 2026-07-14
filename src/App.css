@@ -1,65 +1,68 @@
 /* --- Design tokens ---
-   Matches the Piflar design reference (see design-reference/styles.css) — a
-   dark, purple-glow theme. Every screen should reuse these instead of
-   hardcoding colors, so the app reads as one consistent design system. */
+   Calmer, premium dark theme: near-black neutrals with a faint green
+   undertone, one strong green accent, muted subject colors that stay quiet
+   in the background. Every screen should reuse these instead of hardcoding
+   colors, so the app reads as one consistent family. */
 :root {
   color-scheme: dark;
   --font-sans: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  /* Surfaces */
-  --background: oklch(16% 0.02 285);
-  --foreground: oklch(97% 0.01 285);
-  --card: oklch(21% 0.025 285);
-  --card-foreground: oklch(97% 0.01 285);
-  --secondary: oklch(26% 0.03 285);
-  --secondary-foreground: oklch(97% 0.01 285);
-  --muted: oklch(24% 0.025 285);
-  --muted-foreground: oklch(70% 0.02 285);
-  --border: oklch(30% 0.025 285);
-  --input: oklch(28% 0.025 285);
+  /* Surfaces — near-black, barely-there green undertone (not pure gray/black) */
+  --background: oklch(14% 0.015 165);
+  --foreground: oklch(96% 0.004 165);
+  --card: oklch(19% 0.016 165);
+  --card-foreground: oklch(96% 0.004 165);
+  --secondary: oklch(24% 0.018 165);
+  --secondary-foreground: oklch(96% 0.004 165);
+  --muted: oklch(22% 0.016 165);
+  --muted-foreground: oklch(66% 0.008 165);
+  --border: oklch(27% 0.014 165);
+  --input: oklch(25% 0.016 165);
 
-  /* Accent */
-  --primary: oklch(68% 0.25 300);
-  --primary-foreground: oklch(14% 0.02 285);
-  --ring: oklch(68% 0.25 300);
+  /* Accent — the one green: primary buttons, active states, progress only. */
+  --primary: oklch(72% 0.16 162);
+  --primary-foreground: oklch(15% 0.02 165);
+  --ring: oklch(72% 0.16 162);
 
-  /* Semantic */
-  --success: oklch(72% 0.18 155);
-  --success-foreground: oklch(14% 0.02 285);
-  --destructive: oklch(65% 0.22 25);
-  --destructive-foreground: oklch(98% 0.01 285);
+  /* Semantic — success is a deliberately different green (leaf vs. mint) so
+     it never reads as "another primary button" in quiz feedback; correct
+     answers lean on a checkmark + a subtle tint, not a bold fill. */
+  --success: oklch(74% 0.15 145);
+  --success-foreground: oklch(15% 0.02 165);
+  --destructive: oklch(68% 0.13 22);
+  --destructive-foreground: oklch(97% 0.01 165);
 
-  /* Subject accent colors — the reference uses a fixed set of subjects
-     rather than free text; see the Nova snov wizard for the picker. */
-  --fizika: oklch(72% 0.19 250);
-  --matematika: oklch(72% 0.19 30);
-  --zgodovina: oklch(72% 0.16 70);
-  --kemija: oklch(74% 0.19 155);
-  --biologija: oklch(72% 0.18 195);
-  --slovenscina: oklch(72% 0.2 350);
-  --anglescina: oklch(72% 0.2 10);
-  --ekonomija: oklch(72% 0.19 50);
-  --sociologija: oklch(72% 0.18 91);
-  --psihologija: oklch(72% 0.18 113);
-  --sport: oklch(72% 0.2 134);
-  --glasba: oklch(72% 0.18 175);
-  --geografija: oklch(72% 0.18 213);
-  --filozofija: oklch(72% 0.18 232);
-  --nemscina: oklch(72% 0.19 270);
-  --umetnost: oklch(72% 0.2 290);
-  --spanscina: oklch(72% 0.2 310);
-  --informatika: oklch(72% 0.19 330);
+  /* Subject accent colors — same hues as before, muted (lower chroma and
+     lightness) so they read as quiet chips, never competing with --primary. */
+  --fizika: oklch(62% 0.1 250);
+  --matematika: oklch(62% 0.1 30);
+  --zgodovina: oklch(62% 0.09 70);
+  --kemija: oklch(64% 0.1 155);
+  --biologija: oklch(62% 0.09 195);
+  --slovenscina: oklch(62% 0.11 350);
+  --anglescina: oklch(62% 0.11 10);
+  --ekonomija: oklch(62% 0.1 50);
+  --sociologija: oklch(62% 0.09 91);
+  --psihologija: oklch(62% 0.09 113);
+  --sport: oklch(62% 0.11 134);
+  --glasba: oklch(62% 0.09 175);
+  --geografija: oklch(62% 0.09 213);
+  --filozofija: oklch(62% 0.09 232);
+  --nemscina: oklch(62% 0.1 270);
+  --umetnost: oklch(62% 0.11 290);
+  --spanscina: oklch(62% 0.11 310);
+  --informatika: oklch(62% 0.1 330);
 
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, oklch(68% 0.25 300), oklch(75% 0.2 260));
-  --gradient-mesh: radial-gradient(at 20% 10%, oklch(35% 0.22 300 / 0.5) 0px, transparent 50%),
-    radial-gradient(at 85% 20%, oklch(35% 0.18 250 / 0.4) 0px, transparent 50%),
-    radial-gradient(at 50% 90%, oklch(35% 0.2 320 / 0.35) 0px, transparent 55%);
+  /* Gradients — subtle single-hue depth, not a multi-hue sweep. */
+  --gradient-primary: linear-gradient(135deg, oklch(74% 0.16 162), oklch(65% 0.14 152));
+  --gradient-mesh: radial-gradient(at 20% 10%, oklch(30% 0.05 162 / 0.3) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, oklch(28% 0.04 155 / 0.25) 0px, transparent 50%),
+    radial-gradient(at 50% 90%, oklch(26% 0.03 165 / 0.2) 0px, transparent 55%);
 
   /* Shadows */
   --shadow-card: 0 4px 20px -8px oklch(0% 0 0 / 0.5);
-  --shadow-glow: 0 10px 40px -10px oklch(68% 0.25 300 / 0.55);
-  --shadow-glow-lg: 0 20px 60px -15px oklch(68% 0.25 300 / 0.6);
+  --shadow-glow: 0 10px 40px -10px oklch(72% 0.16 162 / 0.4);
+  --shadow-glow-lg: 0 20px 60px -15px oklch(72% 0.16 162 / 0.45);
 
   --radius-sm: 0.75rem;
   --radius: 1.25rem;
