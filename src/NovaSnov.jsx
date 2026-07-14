@@ -5,10 +5,15 @@ import { compressImage } from './compressImage.js'
 const TOTAL_STEPS = 4
 const PAGE_SEPARATOR = '\n\n---\n\n'
 
-const PROCESSING_MESSAGES = [
+const OCR_MESSAGES = [
   'Berem tvojo pisavo... 👀',
   'Ločim bistvo od nepomembnega... 🧠',
   'Urejam zapiske... ✨',
+]
+
+const PREGENERATION_MESSAGES = [
+  'Pripravljam še kviz in kartice... 🧠',
+  'Sestavljam naloge za dopolnjevanje... ✍️',
   'Skoraj gotovo... 🎉',
 ]
 
@@ -32,8 +37,11 @@ function NovaSnov({ notes, onCreated, onCancel }) {
   const [photos, setPhotos] = useState([]) // { id, file, previewUrl }
   const [mode, setMode] = useState('full')
   const [phase, setPhase] = useState('form') // 'form' | 'processing' | 'error'
+  const [processingStage, setProcessingStage] = useState('ocr') // 'ocr' | 'pregenerating'
   const [errorMessage, setErrorMessage] = useState(null)
   const [messageIndex, setMessageIndex] = useState(0)
+
+  const processingMessages = processingStage === 'ocr' ? OCR_MESSAGES : PREGENERATION_MESSAGES
 
   const fileInputRef = useRef(null)
   const customSubjects = customSubjectsInUse(notes)
@@ -54,10 +62,10 @@ function NovaSnov({ notes, onCreated, onCancel }) {
   useEffect(() => {
     if (phase !== 'processing') return
     const timer = setInterval(() => {
-      setMessageIndex((i) => (i + 1) % PROCESSING_MESSAGES.length)
+      setMessageIndex((i) => (i + 1) % processingMessages.length)
     }, 1900)
     return () => clearInterval(timer)
-  }, [phase])
+  }, [phase, processingMessages])
 
   function handleSelectSubject(key) {
     setSubjectKey(key)
@@ -97,6 +105,7 @@ function NovaSnov({ notes, onCreated, onCancel }) {
 
   async function handleCreate() {
     setPhase('processing')
+    setProcessingStage('ocr')
     setMessageIndex(0)
     setErrorMessage(null)
 
@@ -144,6 +153,18 @@ function NovaSnov({ notes, onCreated, onCancel }) {
         throw new Error(note.error || 'Snovi ni bilo mogoče shraniti.')
       }
 
+      // Best-effort: warm the quiz/flashcards/fill-blank cache right away so
+      // opening them from Zapiski feels instant. Never blocks navigation —
+      // if one (or all) fail, those study modes just fall back to generating
+      // on demand when opened, same as before this existed.
+      setProcessingStage('pregenerating')
+      setMessageIndex(0)
+      await Promise.allSettled([
+        fetch(`/api/notes/${note.id}/quiz`, { method: 'POST' }),
+        fetch(`/api/notes/${note.id}/flashcards`, { method: 'POST' }),
+        fetch(`/api/notes/${note.id}/fill-blank`, { method: 'POST' }),
+      ])
+
       onCreated(note)
     } catch (err) {
       setErrorMessage(err.message || 'Nekaj je šlo narobe. Poskusi znova.')
@@ -156,7 +177,7 @@ function NovaSnov({ notes, onCreated, onCancel }) {
       <main className="wizard processing-screen">
         <div className="processing-spinner" />
         <p key={messageIndex} className="processing-message anim-pop-in">
-          {PROCESSING_MESSAGES[messageIndex]}
+          {processingMessages[messageIndex]}
         </p>
       </main>
     )

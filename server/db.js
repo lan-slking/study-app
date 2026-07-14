@@ -58,6 +58,19 @@ export async function initDb() {
   if (!existingColumns.includes("mode")) {
     db.run("ALTER TABLE notes ADD COLUMN mode TEXT NOT NULL DEFAULT ''");
   }
+  // Cached Gemini-generated study content, keyed to whatever `content` was
+  // current when generated. Null means "not generated yet" — the quiz/
+  // flashcards/fill-blank endpoints fall back to generating on demand when
+  // empty, so pre-generation is a pure optimization, never a hard dependency.
+  if (!existingColumns.includes("quiz_json")) {
+    db.run("ALTER TABLE notes ADD COLUMN quiz_json TEXT");
+  }
+  if (!existingColumns.includes("flashcards_json")) {
+    db.run("ALTER TABLE notes ADD COLUMN flashcards_json TEXT");
+  }
+  if (!existingColumns.includes("fill_blank_json")) {
+    db.run("ALTER TABLE notes ADD COLUMN fill_blank_json TEXT");
+  }
 
   persist();
 }
@@ -114,5 +127,34 @@ export function updateNote(id, { title, content, subject, lastQuizCorrect, lastQ
 
 export function deleteNote(id) {
   db.run("DELETE FROM notes WHERE id = ?", [id]);
+  persist();
+}
+
+// Partial update for the cached study-content columns — only overwrites the
+// keys present in `updates` (e.g. quiz_json), so one generation failing
+// (see Promise.allSettled in index.js) doesn't wipe out a sibling cache that
+// succeeded. Keys are the raw column names, matching getNoteById's shape.
+export function updateGeneratedContent(id, updates) {
+  const existing = getNoteById(id);
+  if (!existing) return null;
+
+  db.run(
+    "UPDATE notes SET quiz_json = ?, flashcards_json = ?, fill_blank_json = ? WHERE id = ?",
+    [
+      updates.quiz_json !== undefined ? updates.quiz_json : existing.quiz_json,
+      updates.flashcards_json !== undefined ? updates.flashcards_json : existing.flashcards_json,
+      updates.fill_blank_json !== undefined ? updates.fill_blank_json : existing.fill_blank_json,
+      id,
+    ],
+  );
+  persist();
+  return getNoteById(id);
+}
+
+// Clears all cached study content — called when a note's content actually
+// changes, so a stale quiz/flashcards/fill-blank set is never served as if
+// it matched the current text.
+export function invalidateGeneratedContent(id) {
+  db.run("UPDATE notes SET quiz_json = NULL, flashcards_json = NULL, fill_blank_json = NULL WHERE id = ?", [id]);
   persist();
 }

@@ -3,7 +3,16 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import { GoogleGenAI } from "@google/genai";
-import { initDb, getAllNotes, getNoteById, createNote, updateNote, deleteNote } from "./db.js";
+import {
+  initDb,
+  getAllNotes,
+  getNoteById,
+  createNote,
+  updateNote,
+  deleteNote,
+  updateGeneratedContent,
+  invalidateGeneratedContent,
+} from "./db.js";
 import { generateValidatedJson, describeGeminiError } from "./geminiJson.js";
 
 // Node's ES modules support top-level await, so we can wait for the database
@@ -28,6 +37,7 @@ if (!GEMINI_API_KEY) {
 
 // Gemini client — reads GEMINI_API_KEY from the environment (loaded from .env above).
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 // Keep uploads in memory (no need to write the image to disk for this endpoint).
 // Limit to 10MB, which is comfortably above what a phone photo needs.
@@ -63,12 +73,24 @@ app.put("/api/notes/:id", (req, res) => {
     return res.status(400).json({ error: "Neveljaven ID zapiska." });
   }
 
+  const before = getNoteById(id);
   const { title, content, subject, lastQuizCorrect, lastQuizTotal } = req.body;
-  const note = updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal });
+  let note = updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal });
 
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
   }
+
+  // The cached quiz/flashcards/fill-blank content was generated from the OLD
+  // content — once it actually changes, that cache no longer matches and
+  // must be regenerated, not just left stale. Re-fetch afterward so the
+  // response reflects the invalidation instead of the pre-invalidation `note`.
+  if (content !== undefined && content !== before.content) {
+    invalidateGeneratedContent(id);
+    scheduleRegeneration(id);
+    note = getNoteById(id);
+  }
+
   res.json(note);
 });
 
@@ -145,7 +167,7 @@ app.post("/api/process-image", upload.single("image"), async (req, res) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: GEMINI_MODEL,
       contents: [
         {
           inlineData: {
@@ -171,11 +193,15 @@ app.post("/api/process-image", upload.single("image"), async (req, res) => {
   }
 });
 
-// --- Study modes: Quiz and Flashcards ---
-// Both are generated fresh from the note's content each time they're opened
-// (nothing quiz/flashcard-related is stored in the database) — see
-// geminiJson.js for the shared "force JSON, validate, retry once" helper
-// these all use.
+// --- Study modes: Quiz, Flashcards, and Dopolnjevanje (fill-in-the-blank) ---
+// Each is cached on the note (quiz_json / flashcards_json / fill_blank_json)
+// once generated, so opening it again is instant instead of re-calling
+// Gemini — see getOrGenerateStudyContent below. The cache is invalidated
+// whenever the note's content changes (see the PUT handler above) and
+// regenerated in the background a few seconds after edits settle (see
+// scheduleRegeneration), and pre-warmed right after a note is first created
+// by the wizard calling all three endpoints once up front. See geminiJson.js
+// for the shared "force JSON, validate, retry once" helper these all use.
 
 // Checks the shape Gemini must return for a quiz. Returns null if valid,
 // otherwise a short string describing what's wrong (used only for logging).
@@ -219,6 +245,20 @@ function validateFlashcards(parsed) {
 function validateGrade(parsed) {
   if (!parsed || typeof parsed.correct !== "boolean") return "missing correct boolean";
   if (typeof parsed.explanation !== "string") return "missing explanation";
+  return null;
+}
+
+function validateFillBlank(parsed) {
+  if (!parsed || !Array.isArray(parsed.exercises)) return "missing exercises array";
+  if (parsed.exercises.length < 6 || parsed.exercises.length > 8) {
+    return `expected 6-8 exercises, got ${parsed.exercises.length}`;
+  }
+  for (const ex of parsed.exercises) {
+    if (typeof ex.sentence !== "string" || !ex.sentence.includes("___")) return "exercise missing blank in sentence";
+    if (typeof ex.answer !== "string" || !ex.answer.trim()) return "exercise missing answer";
+    if (typeof ex.explanation !== "string" || !ex.explanation.trim()) return "exercise missing explanation";
+    if (typeof ex.section !== "string" || !ex.section.trim()) return "exercise missing section";
+  }
   return null;
 }
 
@@ -282,6 +322,30 @@ Rules:
 - Include as many cards as the material reasonably supports (typically 5-15).`;
 }
 
+function buildFillBlankPrompt(noteContent) {
+  return `Based on the following study notes, create 6 to 8 fill-in-the-blank exercises that test recall of key terms, definitions, and formula components.
+
+Study notes:
+"""
+${noteContent}
+"""
+
+Return ONLY valid JSON matching exactly this shape, with no other text:
+{
+  "exercises": [
+    { "sentence": "...", "answer": "...", "explanation": "...", "section": "..." }
+  ]
+}
+
+Rules:
+- "sentence" is a complete sentence taken or adapted from the notes, with exactly one key term, value, or formula element replaced by "___" (three underscores).
+- "answer" is the exact word or short phrase that fills the blank.
+- "explanation" is 1 short sentence explaining the answer.
+- "section" is a short label (a heading or topic taken from the notes) identifying which part of the notes this is drawn from.
+- Base every exercise strictly on the provided notes — never introduce outside facts.
+- Write in the same language as the notes.`;
+}
+
 function buildGradeAnswerPrompt({ question, expectedAnswer, userAnswer }) {
   return `A student answered a short-answer quiz question. Judge whether their answer is correct, allowing for paraphrasing, synonyms, and minor wording differences — the meaning must match, not the exact words.
 
@@ -296,6 +360,73 @@ Return ONLY valid JSON matching exactly this shape, with no other text:
 }
 
 "explanation" is 1 short sentence written directly to the student, explaining the grading decision.`;
+}
+
+// Returns the cached value for `field` (quiz_json / flashcards_json /
+// fill_blank_json) if present, otherwise generates, validates, caches, and
+// returns it — the single place "check cache, else ask Gemini" happens, so
+// pre-generation, on-demand generation, and post-edit regeneration all agree
+// on what "ready" means.
+async function getOrGenerateStudyContent(note, field, { prompt, validate }) {
+  if (note[field]) {
+    try {
+      return JSON.parse(note[field]);
+    } catch {
+      // Corrupt cache (shouldn't normally happen) — fall through and regenerate.
+    }
+  }
+
+  const generated = await generateValidatedJson(ai, { model: GEMINI_MODEL, prompt, validate });
+  updateGeneratedContent(note.id, { [field]: JSON.stringify(generated) });
+  return generated;
+}
+
+// Debounces regeneration after a content edit — without this, every
+// keystroke-debounced save from the frontend (see App.jsx's own 600ms
+// debounce) would trigger three fresh Gemini calls while the student is
+// still actively typing. Waiting a few extra seconds after edits settle
+// keeps this to one regeneration per editing session. In-memory only: lost
+// on server restart, which just means the cache regenerates next time the
+// note's study modes are opened instead — never a hard failure.
+const REGENERATION_DEBOUNCE_MS = 4000;
+const regenerationTimers = new Map();
+
+function scheduleRegeneration(noteId) {
+  const existing = regenerationTimers.get(noteId);
+  if (existing) clearTimeout(existing);
+
+  const timer = setTimeout(() => {
+    regenerationTimers.delete(noteId);
+    regenerateStudyContent(noteId).catch((err) => {
+      console.error(`Background regeneration failed for note ${noteId}:`, err);
+    });
+  }, REGENERATION_DEBOUNCE_MS);
+  regenerationTimers.set(noteId, timer);
+}
+
+async function regenerateStudyContent(noteId) {
+  const note = getNoteById(noteId);
+  if (!note || !note.content.trim()) return;
+
+  const [quiz, flashcards, fillBlank] = await Promise.allSettled([
+    generateValidatedJson(ai, { model: GEMINI_MODEL, prompt: buildQuizPrompt(note.content), validate: validateQuiz }),
+    generateValidatedJson(ai, {
+      model: GEMINI_MODEL,
+      prompt: buildFlashcardsPrompt(note.content),
+      validate: validateFlashcards,
+    }),
+    generateValidatedJson(ai, {
+      model: GEMINI_MODEL,
+      prompt: buildFillBlankPrompt(note.content),
+      validate: validateFillBlank,
+    }),
+  ]);
+
+  const update = {};
+  if (quiz.status === "fulfilled") update.quiz_json = JSON.stringify(quiz.value);
+  if (flashcards.status === "fulfilled") update.flashcards_json = JSON.stringify(flashcards.value);
+  if (fillBlank.status === "fulfilled") update.fill_blank_json = JSON.stringify(fillBlank.value);
+  if (Object.keys(update).length > 0) updateGeneratedContent(noteId, update);
 }
 
 app.post("/api/notes/:id/quiz", async (req, res) => {
@@ -315,8 +446,7 @@ app.post("/api/notes/:id/quiz", async (req, res) => {
   }
 
   try {
-    const quiz = await generateValidatedJson(ai, {
-      model: "gemini-2.5-flash",
+    const quiz = await getOrGenerateStudyContent(note, "quiz_json", {
       prompt: buildQuizPrompt(note.content),
       validate: validateQuiz,
     });
@@ -345,8 +475,7 @@ app.post("/api/notes/:id/flashcards", async (req, res) => {
   }
 
   try {
-    const flashcards = await generateValidatedJson(ai, {
-      model: "gemini-2.5-flash",
+    const flashcards = await getOrGenerateStudyContent(note, "flashcards_json", {
       prompt: buildFlashcardsPrompt(note.content),
       validate: validateFlashcards,
     });
@@ -354,6 +483,35 @@ app.post("/api/notes/:id/flashcards", async (req, res) => {
   } catch (err) {
     console.error("Flashcard generation error:", err);
     const message = describeGeminiError(err) || "Kartončkov ni bilo mogoče ustvariti. Poskusi znova.";
+    res.status(500).json({ error: message });
+  }
+});
+
+app.post("/api/notes/:id/fill-blank", async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({
+      error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
+    });
+  }
+
+  const id = Number(req.params.id);
+  const note = Number.isInteger(id) ? getNoteById(id) : null;
+  if (!note) {
+    return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
+  }
+  if (!note.content.trim()) {
+    return res.status(400).json({ error: "Ta zapisek še nima vsebine, iz katere bi lahko naredili nalog dopolnjevanja." });
+  }
+
+  try {
+    const fillBlank = await getOrGenerateStudyContent(note, "fill_blank_json", {
+      prompt: buildFillBlankPrompt(note.content),
+      validate: validateFillBlank,
+    });
+    res.json(fillBlank);
+  } catch (err) {
+    console.error("Fill-blank generation error:", err);
+    const message = describeGeminiError(err) || "Nalog dopolnjevanja ni bilo mogoče ustvariti. Poskusi znova.";
     res.status(500).json({ error: message });
   }
 });
@@ -372,7 +530,7 @@ app.post("/api/grade-answer", async (req, res) => {
 
   try {
     const grade = await generateValidatedJson(ai, {
-      model: "gemini-2.5-flash",
+      model: GEMINI_MODEL,
       prompt: buildGradeAnswerPrompt({ question, expectedAnswer, userAnswer }),
       validate: validateGrade,
     });
