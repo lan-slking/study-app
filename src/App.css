@@ -190,6 +190,119 @@
   color: var(--foreground);
 }
 
+.app-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Desktop sidebar ---
+   Persistent left nav (logo, Domov, Nova snov, streak, subject filter).
+   Hidden below 1024px — mobile keeps Domov itself as the hub, no separate
+   nav chrome. See the (min-width: 1024px) block further down for display. */
+.app-sidebar {
+  display: none;
+}
+
+.app-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.app-sidebar-link {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--muted-foreground);
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.app-sidebar-link.active {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+.app-sidebar-cta {
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-glow);
+}
+
+.app-sidebar-streak {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.app-sidebar-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.app-sidebar-subjects-title {
+  margin: 0;
+  padding: 0 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-sidebar-subject-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.app-sidebar-subject-item {
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--muted-foreground);
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-sidebar-subject-item.active {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
 /* Full-screen states shown before the app has notes to render at all. */
 .app-status {
   height: 100vh;
@@ -727,10 +840,12 @@
 
 .note-card-wrap {
   position: relative;
+  height: 100%;
 }
 
 .note-card {
   width: 100%;
+  height: 100%;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1687,10 +1802,27 @@
 
 /* --- Desktop (1024px+) --- */
 @media (min-width: 1024px) {
+  /* Persistent left nav replaces Domov's own brand header — see
+     Sidebar.jsx. Home's header still renders (mobile needs it) but is
+     hidden here to avoid showing the logo/streak twice. */
+  .app-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 15rem;
+    flex-shrink: 0;
+    padding: 2.5rem 1rem;
+    overflow-y: auto;
+  }
+
+  .home-topbar {
+    display: none;
+  }
+
   /* Global: a generous but bounded container — text never runs full-width
      on a wide monitor. */
   .home {
-    max-width: 1160px;
+    max-width: 1100px;
   }
 
   /* Domov: greeting and the CTA share a header row instead of stacking,
@@ -1729,7 +1861,7 @@
   }
 
   .zapiski-main {
-    max-width: 720px;
+    max-width: 700px;
     min-height: 0;
     padding: 0 0 3rem;
   }
@@ -1835,9 +1967,14 @@
    touchscreens with a wide viewport (e.g. tablets) shouldn't get a
    permanently "stuck" hover effect from the last tapped element. */
 @media (hover: hover) and (pointer: fine) {
+  .app-sidebar-link:not(.active):hover,
+  .app-sidebar-subject-item:not(.active):hover {
+    color: var(--foreground);
+  }
+
   .note-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 28px -8px oklch(0% 0 0 / 0.55);
+    box-shadow: 0 0 0 1px var(--primary), var(--shadow-glow);
   }
 
   .primary-button:hover:not(:disabled) {

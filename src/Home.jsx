@@ -7,8 +7,12 @@ import ProgressRing from './ProgressRing.jsx'
 // Home is the app's landing screen: brand header, greeting, the single
 // "start something new" action, and (once they exist) cards for the user's
 // study topics. It receives everything as props from App.jsx.
-function Home({ notes, streak, onSelectNote, onAddNote, onDeleteNote }) {
+function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteNote }) {
   const hasNotes = notes.length > 0
+  // The subject filter (set from the desktop sidebar) only narrows the main
+  // grid — "Danes ponovi" still surfaces whatever needs review regardless of
+  // what you're currently browsing.
+  const visibleNotes = subjectFilter ? notes.filter((note) => note.subject === subjectFilter) : notes
   const todaysReview = computeTodaysReview(notes)
 
   return (
@@ -72,12 +76,22 @@ function Home({ notes, streak, onSelectNote, onAddNote, onDeleteNote }) {
 
       <div className="home-section-header anim-slide-up" style={{ animationDelay: '200ms' }}>
         <h2>Tvoje snovi</h2>
-        {hasNotes && <span className="home-count">{notes.length} {notes.length === 1 ? 'snov' : 'snovi'}</span>}
+        {hasNotes && (
+          <span className="home-count">
+            {visibleNotes.length} {visibleNotes.length === 1 ? 'snov' : 'snovi'}
+          </span>
+        )}
       </div>
 
-      {hasNotes ? (
+      {!hasNotes ? (
+        <p className="home-empty-hint anim-slide-up" style={{ animationDelay: '240ms' }}>
+          Tu bodo tvoje snovi, ko ustvariš prvo.
+        </p>
+      ) : visibleNotes.length === 0 ? (
+        <p className="home-empty-hint anim-slide-up">Ni snovi za ta predmet.</p>
+      ) : (
         <ul className="note-card-list">
-          {notes.map((note, index) => {
+          {visibleNotes.map((note, index) => {
             const subject = subjectMeta(note.subject)
             const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
             const mastery = computeMastery(note)
@@ -134,10 +148,6 @@ function Home({ notes, streak, onSelectNote, onAddNote, onDeleteNote }) {
             )
           })}
         </ul>
-      ) : (
-        <p className="home-empty-hint anim-slide-up" style={{ animationDelay: '240ms' }}>
-          Tu bodo tvoje snovi, ko ustvariš prvo.
-        </p>
       )}
     </main>
   )

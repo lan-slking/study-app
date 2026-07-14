@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Sidebar from './Sidebar.jsx'
 import Home from './Home.jsx'
 import NovaSnov from './NovaSnov.jsx'
 import Zapiski from './Zapiski.jsx'
@@ -44,6 +45,10 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [streak, setStreak] = useState(0)
+
+  // Subject clicked in the desktop sidebar (see Sidebar.jsx) — filters
+  // Home's card grid. null means "show everything".
+  const [subjectFilter, setSubjectFilter] = useState(null)
 
   // Tracks in-flight debounce timers per note id, so typing in note A doesn't
   // cancel a pending save for note B. Shape: { [noteId]: { timer, note } }.
@@ -137,6 +142,21 @@ function App() {
     setView('home')
   }
 
+  // "Domov" in the persistent desktop sidebar — usable from any screen, so
+  // it also flushes a pending save if you were mid-edit, same as the normal
+  // back button. Also clears any active subject filter, since a deliberate
+  // "go home" reads as "show me everything" again.
+  function handleGoHome() {
+    if (selectedId !== null) flushPendingSave(selectedId)
+    setSubjectFilter(null)
+    setView('home')
+  }
+
+  function handleFilterSubject(subjectKey) {
+    setSubjectFilter(subjectKey)
+    setView('home')
+  }
+
   // A brand new note is created only once the wizard finishes processing all
   // photos — see NovaSnov.jsx. This just wires the result into app state.
   function handleNoteCreated(note) {
@@ -227,52 +247,65 @@ function App() {
 
   return (
     <div className="app">
-      {view === 'wizard' && (
-        <NovaSnov notes={notes} onCreated={handleNoteCreated} onCancel={() => setView('home')} />
-      )}
+      <Sidebar
+        notes={notes}
+        streak={streak}
+        currentView={view}
+        subjectFilter={subjectFilter}
+        onGoHome={handleGoHome}
+        onAddNote={() => setView('wizard')}
+        onFilterSubject={handleFilterSubject}
+      />
 
-      {view === 'note' && selectedNote && (
-        <Zapiski
-          note={selectedNote}
-          onUpdateNote={handleUpdateNote}
-          onBack={handleBackToHome}
-          onOpenQuiz={() => setView('quiz')}
-          onOpenFlashcards={() => setView('flashcards')}
-          onOpenDopolnjevanje={() => setView('dopolnjevanje')}
-        />
-      )}
+      <div className="app-content">
+        {view === 'wizard' && (
+          <NovaSnov notes={notes} onCreated={handleNoteCreated} onCancel={() => setView('home')} />
+        )}
 
-      {view === 'quiz' && selectedNote && (
-        <Quiz
-          quizEndpoint={`/api/notes/${selectedNote.id}/quiz`}
-          subjectColor={subjectMeta(selectedNote.subject).color}
-          onClose={() => setView('note')}
-          onFinished={handleQuizFinished}
-        />
-      )}
+        {view === 'note' && selectedNote && (
+          <Zapiski
+            note={selectedNote}
+            onUpdateNote={handleUpdateNote}
+            onBack={handleBackToHome}
+            onOpenQuiz={() => setView('quiz')}
+            onOpenFlashcards={() => setView('flashcards')}
+            onOpenDopolnjevanje={() => setView('dopolnjevanje')}
+          />
+        )}
 
-      {view === 'flashcards' && selectedNote && (
-        <Flashcards note={selectedNote} onClose={() => setView('note')} onFinished={handleFlashcardsFinished} />
-      )}
+        {view === 'quiz' && selectedNote && (
+          <Quiz
+            quizEndpoint={`/api/notes/${selectedNote.id}/quiz`}
+            subjectColor={subjectMeta(selectedNote.subject).color}
+            onClose={() => setView('note')}
+            onFinished={handleQuizFinished}
+          />
+        )}
 
-      {view === 'dopolnjevanje' && selectedNote && (
-        <Dopolnjevanje
-          note={selectedNote}
-          subjectColor={subjectMeta(selectedNote.subject).color}
-          onClose={() => setView('note')}
-          onFinished={handleDopolnjevanjeFinished}
-        />
-      )}
+        {view === 'flashcards' && selectedNote && (
+          <Flashcards note={selectedNote} onClose={() => setView('note')} onFinished={handleFlashcardsFinished} />
+        )}
 
-      {view === 'home' && (
-        <Home
-          notes={notes}
-          streak={streak}
-          onSelectNote={handleSelectNote}
-          onAddNote={() => setView('wizard')}
-          onDeleteNote={handleDeleteNote}
-        />
-      )}
+        {view === 'dopolnjevanje' && selectedNote && (
+          <Dopolnjevanje
+            note={selectedNote}
+            subjectColor={subjectMeta(selectedNote.subject).color}
+            onClose={() => setView('note')}
+            onFinished={handleDopolnjevanjeFinished}
+          />
+        )}
+
+        {view === 'home' && (
+          <Home
+            notes={notes}
+            streak={streak}
+            subjectFilter={subjectFilter}
+            onSelectNote={handleSelectNote}
+            onAddNote={() => setView('wizard')}
+            onDeleteNote={handleDeleteNote}
+          />
+        )}
+      </div>
     </div>
   )
 }

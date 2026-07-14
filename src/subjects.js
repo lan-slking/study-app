@@ -68,3 +68,15 @@ export function customSubjectsInUse(notes) {
   }
   return [...seen.values()]
 }
+
+// Every distinct subject (official or custom) currently used by at least one
+// note — powers the desktop sidebar's subject filter list.
+export function subjectsInUse(notes) {
+  const seen = new Map()
+  for (const note of notes) {
+    if (note.subject && !seen.has(note.subject)) {
+      seen.set(note.subject, subjectMeta(note.subject))
+    }
+  }
+  return [...seen.values()]
+}
