@@ -582,6 +582,66 @@
   flex-shrink: 0;
 }
 
+.review-section {
+  margin-top: 2rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--primary) 12%, var(--card));
+  box-shadow: var(--shadow-card);
+}
+
+.review-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.review-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.review-card {
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--card);
+  padding: 0.6rem 0.9rem;
+  text-align: left;
+  color: var(--foreground);
+  font-family: inherit;
+}
+
+.review-card-emoji {
+  font-size: 1.1rem;
+}
+
+.review-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-card-countdown {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.zapiski-test-date {
+  margin-top: 0.75rem;
+  max-width: 16rem;
+}
+
 .home-section-header {
   display: flex;
   align-items: center;
@@ -740,6 +800,36 @@
   padding: 0.3rem 0.8rem;
   font-size: 0.8rem;
   font-weight: 700;
+}
+
+.wizard-label {
+  display: block;
+  margin-top: 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+
+/* Subtle text-only affordance for optional fields (e.g. "+ Dodaj datum
+   testa") — deliberately quieter than .secondary-button so it doesn't
+   compete with the step's real content. */
+.text-link-button {
+  cursor: pointer;
+  align-self: flex-start;
+  margin-top: 1.25rem;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--muted-foreground);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.text-link-button:hover {
+  color: var(--foreground);
 }
 
 .wizard-subject-grid {

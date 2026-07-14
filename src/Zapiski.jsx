@@ -2,6 +2,7 @@ import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
+import { daysUntilTest, formatDaysUntilTest } from './reviewPlan.js'
 
 const MODE_LABELS = { full: 'Celotni zapiski', summary: 'Povzetek' }
 
@@ -12,6 +13,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
   const [isEditing, setIsEditing] = useState(false)
   const subject = subjectMeta(note.subject)
   const hasContent = Boolean(note.content.trim())
+  const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
 
   return (
     <main className="zapiski">
@@ -56,7 +58,28 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
             {note.mode && MODE_LABELS[note.mode] && <span>{MODE_LABELS[note.mode]}</span>}
             {note.mode && MODE_LABELS[note.mode] && <span>•</span>}
             <span>{formatRelativeDate(note.updated_at)}</span>
+            {testCountdown && !isEditing && (
+              <>
+                <span>•</span>
+                <span>🗓️ Test: {testCountdown}</span>
+              </>
+            )}
           </div>
+
+          {isEditing && (
+            <div className="zapiski-test-date">
+              <label className="wizard-label" htmlFor="zapiski-test-date">
+                Datum testa
+              </label>
+              <input
+                id="zapiski-test-date"
+                type="date"
+                className="text-input"
+                value={note.test_date ?? ''}
+                onChange={(e) => onUpdateNote({ test_date: e.target.value || null })}
+              />
+            </div>
+          )}
         </div>
 
         {isEditing ? (

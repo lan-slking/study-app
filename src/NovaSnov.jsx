@@ -34,6 +34,8 @@ function NovaSnov({ notes, onCreated, onCancel }) {
   const [showCustomSubject, setShowCustomSubject] = useState(false)
   const [customSubjectDraft, setCustomSubjectDraft] = useState('')
   const [title, setTitle] = useState('')
+  const [showTestDate, setShowTestDate] = useState(false)
+  const [testDate, setTestDate] = useState('')
   const [photos, setPhotos] = useState([]) // { id, file, previewUrl }
   const [mode, setMode] = useState('full')
   const [phase, setPhase] = useState('form') // 'form' | 'processing' | 'error'
@@ -141,7 +143,13 @@ function NovaSnov({ notes, onCreated, onCancel }) {
       const createResponse = await fetch('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), subject: subjectKey, mode, content }),
+        body: JSON.stringify({
+          title: title.trim(),
+          subject: subjectKey,
+          mode,
+          content,
+          testDate: testDate || null,
+        }),
       })
       let note
       try {
@@ -352,6 +360,25 @@ function NovaSnov({ notes, onCreated, onCancel }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
+
+          {showTestDate ? (
+            <>
+              <label className="wizard-label" htmlFor="wizard-test-date">
+                Datum testa
+              </label>
+              <input
+                id="wizard-test-date"
+                type="date"
+                className="text-input"
+                value={testDate}
+                onChange={(e) => setTestDate(e.target.value)}
+              />
+            </>
+          ) : (
+            <button type="button" className="text-link-button tap" onClick={() => setShowTestDate(true)}>
+              + Dodaj datum testa
+            </button>
+          )}
         </div>
       )}
 

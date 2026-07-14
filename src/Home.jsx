@@ -1,5 +1,6 @@
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
+import { daysUntilTest, formatDaysUntilTest, computeTodaysReview } from './reviewPlan.js'
 import ProgressRing from './ProgressRing.jsx'
 
 // Home is the app's landing screen: brand header, greeting, the single
@@ -7,6 +8,7 @@ import ProgressRing from './ProgressRing.jsx'
 // study topics. It receives everything as props from App.jsx.
 function Home({ notes, onSelectNote, onAddNote, onDeleteNote }) {
   const hasNotes = notes.length > 0
+  const todaysReview = computeTodaysReview(notes)
 
   return (
     <main className="home">
@@ -41,6 +43,27 @@ function Home({ notes, onSelectNote, onAddNote, onDeleteNote }) {
         </button>
       </div>
 
+      {todaysReview.length > 0 && (
+        <section className="review-section anim-slide-up" style={{ animationDelay: '160ms' }}>
+          <h2 className="review-section-title">📅 Danes ponovi</h2>
+          <ul className="review-card-list">
+            {todaysReview.map((note) => {
+              const subject = subjectMeta(note.subject)
+              return (
+                <li key={note.id}>
+                  <button type="button" className="review-card tap" onClick={() => onSelectNote(note.id)}>
+                    <span className="review-card-emoji" style={{ color: subject.color }}>
+                      {subject.emoji}
+                    </span>
+                    <span className="review-card-title">{note.title || 'Neimenovana snov'}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
+
       <div className="home-section-header anim-slide-up" style={{ animationDelay: '200ms' }}>
         <h2>Tvoje snovi</h2>
         {hasNotes && <span className="home-count">{notes.length} {notes.length === 1 ? 'snov' : 'snovi'}</span>}
@@ -50,6 +73,7 @@ function Home({ notes, onSelectNote, onAddNote, onDeleteNote }) {
         <ul className="note-card-list">
           {notes.map((note, index) => {
             const subject = subjectMeta(note.subject)
+            const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
             return (
               <li
                 key={note.id}
@@ -75,6 +99,7 @@ function Home({ notes, onSelectNote, onAddNote, onDeleteNote }) {
                         </span>
                       )}
                       <span>{formatRelativeDate(note.updated_at)}</span>
+                      {testCountdown && <span className="note-card-countdown">🗓️ {testCountdown}</span>}
                     </div>
                   </div>
                   <ProgressRing correct={note.last_quiz_correct} total={note.last_quiz_total} color={subject.color} />

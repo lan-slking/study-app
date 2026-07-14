@@ -12,6 +12,16 @@ import './App.css'
 // Without this, every single keystroke would fire its own PUT request.
 const SAVE_DEBOUNCE_MS = 600
 
+// Matches SQLite's own datetime('now') shape ("YYYY-MM-DD HH:MM:SS", UTC) —
+// used only for the optimistic local update in handleActivityLogged below,
+// so it parses the same way as the real value that comes back from the
+// server (see reviewPlan.js's reviewedToday).
+function sqliteTimestampNow() {
+  const pad = (n) => String(n).padStart(2, '0')
+  const d = new Date()
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`
+}
+
 function App() {
   // All notes live here, loaded from the backend on startup (see the effect below).
   const [notes, setNotes] = useState([])
@@ -61,13 +71,13 @@ function App() {
     }
   }, [])
 
-  // Actually send a note's current title/content to the backend.
+  // Actually send a note's current title/content/test date to the backend.
   async function saveNoteToServer(id, note) {
     try {
       await fetch(`/api/notes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: note.title, content: note.content }),
+        body: JSON.stringify({ title: note.title, content: note.content, testDate: note.test_date ?? null }),
       })
     } catch (err) {
       console.error('Failed to save note:', err)
@@ -161,6 +171,32 @@ function App() {
     }).catch((err) => {
       console.error('Failed to save quiz result:', err)
     })
+    handleActivityLogged(selectedId, 'quiz', correct, total)
+  }
+
+  function handleFlashcardsFinished(correct, total) {
+    if (selectedId === null) return
+    handleActivityLogged(selectedId, 'flashcards', correct, total)
+  }
+
+  function handleDopolnjevanjeFinished(correct, total) {
+    if (selectedId === null) return
+    handleActivityLogged(selectedId, 'fill_blank', correct, total)
+  }
+
+  // Logs a completed study session (quiz / flashcards / fill_blank) — feeds
+  // the Domov streak and the "reviewed today" check in the review plan.
+  function handleActivityLogged(noteId, type, correct, total) {
+    setNotes((prev) =>
+      prev.map((note) => (note.id === noteId ? { ...note, last_reviewed_at: sqliteTimestampNow() } : note)),
+    )
+    fetch(`/api/notes/${noteId}/activity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, correct, total }),
+    }).catch((err) => {
+      console.error('Failed to log activity:', err)
+    })
   }
 
   if (isLoading) {
@@ -197,13 +233,16 @@ function App() {
         />
       )}
 
-      {view === 'flashcards' && selectedNote && <Flashcards note={selectedNote} onClose={() => setView('note')} />}
+      {view === 'flashcards' && selectedNote && (
+        <Flashcards note={selectedNote} onClose={() => setView('note')} onFinished={handleFlashcardsFinished} />
+      )}
 
       {view === 'dopolnjevanje' && selectedNote && (
         <Dopolnjevanje
           note={selectedNote}
           subjectColor={subjectMeta(selectedNote.subject).color}
           onClose={() => setView('note')}
+          onFinished={handleDopolnjevanjeFinished}
         />
       )}
 

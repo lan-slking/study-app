@@ -71,6 +71,31 @@ export async function initDb() {
   if (!existingColumns.includes("fill_blank_json")) {
     db.run("ALTER TABLE notes ADD COLUMN fill_blank_json TEXT");
   }
+  // Optional user-set exam date ("YYYY-MM-DD") driving the countdown badge
+  // and review plan on Domov, and when this note was last actually studied
+  // (any quiz/flashcards/dopolnjevanje session) — see the activity table
+  // below, which last_reviewed_at is a denormalized shortcut for.
+  if (!existingColumns.includes("test_date")) {
+    db.run("ALTER TABLE notes ADD COLUMN test_date TEXT");
+  }
+  if (!existingColumns.includes("last_reviewed_at")) {
+    db.run("ALTER TABLE notes ADD COLUMN last_reviewed_at TEXT");
+  }
+
+  // One row per completed study session (quiz / flashcards / fill_blank),
+  // across all notes. Powers the Domov streak (distinct days with at least
+  // one row) and could later inform a richer review plan than the simple
+  // last_reviewed_at/last_quiz_* shortcut on notes currently uses.
+  db.run(`
+    CREATE TABLE IF NOT EXISTS activity (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      note_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      correct INTEGER,
+      total INTEGER,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
 
   persist();
 }
@@ -93,8 +118,14 @@ export function getNoteById(id) {
   return note;
 }
 
-export function createNote({ title, content, subject = "", mode = "" }) {
-  db.run("INSERT INTO notes (title, content, subject, mode) VALUES (?, ?, ?, ?)", [title, content, subject, mode]);
+export function createNote({ title, content, subject = "", mode = "", testDate = null }) {
+  db.run("INSERT INTO notes (title, content, subject, mode, test_date) VALUES (?, ?, ?, ?, ?)", [
+    title,
+    content,
+    subject,
+    mode,
+    testDate,
+  ]);
 
   const idStmt = db.prepare("SELECT last_insert_rowid() AS id");
   idStmt.step();
@@ -105,19 +136,20 @@ export function createNote({ title, content, subject = "", mode = "" }) {
   return getNoteById(id);
 }
 
-export function updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal }) {
+export function updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal, testDate }) {
   const existing = getNoteById(id);
   if (!existing) return null;
 
   db.run(
     `UPDATE notes SET title = ?, content = ?, subject = ?, last_quiz_correct = ?, last_quiz_total = ?,
-     updated_at = datetime('now') WHERE id = ?`,
+     test_date = ?, updated_at = datetime('now') WHERE id = ?`,
     [
       title !== undefined ? title : existing.title,
       content !== undefined ? content : existing.content,
       subject !== undefined ? subject : existing.subject,
       lastQuizCorrect !== undefined ? lastQuizCorrect : existing.last_quiz_correct,
       lastQuizTotal !== undefined ? lastQuizTotal : existing.last_quiz_total,
+      testDate !== undefined ? testDate : existing.test_date,
       id,
     ],
   );
@@ -157,4 +189,57 @@ export function updateGeneratedContent(id, updates) {
 export function invalidateGeneratedContent(id) {
   db.run("UPDATE notes SET quiz_json = NULL, flashcards_json = NULL, fill_blank_json = NULL WHERE id = ?", [id]);
   persist();
+}
+
+// Records one completed study session and bumps the note's last-reviewed
+// timestamp — this is what "a day counts toward the streak" and "has this
+// note been reviewed today" (see reviewPlan.js) are both based on.
+export function logActivity(noteId, { type, correct, total }) {
+  db.run("INSERT INTO activity (note_id, type, correct, total) VALUES (?, ?, ?, ?)", [
+    noteId,
+    type,
+    correct ?? null,
+    total ?? null,
+  ]);
+  db.run("UPDATE notes SET last_reviewed_at = datetime('now') WHERE id = ?", [noteId]);
+  persist();
+}
+
+// Current daily streak: the number of consecutive calendar days (counting
+// back from today) with at least one logged activity. A gap of even one day
+// breaks it. Computed fresh from the activity log each time rather than
+// stored as a mutable counter, so it can never drift out of sync.
+export function getStreak() {
+  const stmt = db.prepare(`
+    SELECT DISTINCT date(created_at) AS day FROM activity ORDER BY day DESC
+  `);
+  const days = [];
+  while (stmt.step()) {
+    days.push(stmt.getAsObject().day);
+  }
+  stmt.free();
+
+  if (days.length === 0) return 0;
+
+  const toDate = (isoDay) => new Date(`${isoDay}T00:00:00Z`);
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const today = new Date();
+  const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+
+  // The most recent activity must be today or yesterday for the streak to
+  // still be "alive" — otherwise it's already broken (0), not just stale.
+  const mostRecentGapDays = Math.round((todayUtc - toDate(days[0])) / oneDayMs);
+  if (mostRecentGapDays > 1) return 0;
+
+  let streak = 1;
+  for (let i = 1; i < days.length; i++) {
+    const gap = Math.round((toDate(days[i - 1]) - toDate(days[i])) / oneDayMs);
+    if (gap === 1) {
+      streak++;
+    } else if (gap > 1) {
+      break;
+    }
+    // gap === 0 shouldn't happen (DISTINCT), but would just continue.
+  }
+  return streak;
 }

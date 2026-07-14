@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 // Flashcards shows Gemini-generated term/definition pairs for one note as
 // flippable cards. Cards marked "ne znam" (don't know) come back in the next
 // round; the session ends once every card has been marked "znam" (know it).
-function Flashcards({ note, onClose }) {
+function Flashcards({ note, onClose, onFinished }) {
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [loadError, setLoadError] = useState(null)
 
@@ -51,7 +51,8 @@ function Flashcards({ note, onClose }) {
   function handleAnswer(knewIt) {
     const currentCard = currentRound[cardIndex]
     const updatedNextRound = knewIt ? nextRound : [...nextRound, currentCard]
-    if (knewIt) setKnownCount((n) => n + 1)
+    const updatedKnownCount = knownCount + (knewIt ? 1 : 0)
+    if (knewIt) setKnownCount(updatedKnownCount)
 
     if (cardIndex + 1 < currentRound.length) {
       setNextRound(updatedNextRound)
@@ -68,6 +69,7 @@ function Flashcards({ note, onClose }) {
       setCardIndex(0)
       setIsFlipped(false)
     } else {
+      onFinished?.(updatedKnownCount, totalCount)
       setIsComplete(true)
     }
   }

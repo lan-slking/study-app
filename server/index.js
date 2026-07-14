@@ -12,6 +12,8 @@ import {
   deleteNote,
   updateGeneratedContent,
   invalidateGeneratedContent,
+  logActivity,
+  getStreak,
 } from "./db.js";
 import { generateValidatedJson, describeGeminiError } from "./geminiJson.js";
 
@@ -63,7 +65,8 @@ app.post("/api/notes", (req, res) => {
   const content = req.body.content ?? "";
   const subject = req.body.subject ?? "";
   const mode = req.body.mode ?? "";
-  const note = createNote({ title, content, subject, mode });
+  const testDate = req.body.testDate ?? null;
+  const note = createNote({ title, content, subject, mode, testDate });
   res.status(201).json(note);
 });
 
@@ -74,8 +77,8 @@ app.put("/api/notes/:id", (req, res) => {
   }
 
   const before = getNoteById(id);
-  const { title, content, subject, lastQuizCorrect, lastQuizTotal } = req.body;
-  let note = updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal });
+  const { title, content, subject, lastQuizCorrect, lastQuizTotal, testDate } = req.body;
+  let note = updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal, testDate });
 
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
@@ -102,6 +105,33 @@ app.delete("/api/notes/:id", (req, res) => {
 
   deleteNote(id);
   res.status(204).end();
+});
+
+// Logs one completed study session (quiz / flashcards / fill_blank) — feeds
+// the Domov streak and the "reviewed today" check in the review plan. Called
+// by the frontend whenever a Kviz/Kartice/Dopolnjevanje session finishes.
+const ACTIVITY_TYPES = new Set(["quiz", "flashcards", "fill_blank"]);
+
+app.post("/api/notes/:id/activity", (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: "Neveljaven ID zapiska." });
+  }
+  if (!getNoteById(id)) {
+    return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
+  }
+
+  const { type, correct, total } = req.body;
+  if (!ACTIVITY_TYPES.has(type)) {
+    return res.status(400).json({ error: "Neveljavna vrsta dejavnosti." });
+  }
+
+  logActivity(id, { type, correct, total });
+  res.status(201).json({ streak: getStreak() });
+});
+
+app.get("/api/streak", (req, res) => {
+  res.json({ streak: getStreak() });
 });
 
 // The two prompts the "Upload photo" feature can use, keyed by the `mode` field
