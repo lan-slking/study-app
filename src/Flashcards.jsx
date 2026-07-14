@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Confetti from './Confetti.jsx'
 
 // Flashcards shows Gemini-generated term/definition pairs for one note as
 // flippable cards. Cards marked "ne znam" (don't know) come back in the next
@@ -14,6 +15,7 @@ function Flashcards({ note, onClose, onFinished }) {
   const [cardIndex, setCardIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   useEffect(() => {
     loadCards()
@@ -41,6 +43,7 @@ function Flashcards({ note, onClose, onFinished }) {
       setCardIndex(0)
       setIsFlipped(false)
       setIsComplete(false)
+      setShowConfetti(false)
       setStatus('ready')
     } catch (err) {
       setLoadError(err.message || 'Kartončkov ni bilo mogoče ustvariti.')
@@ -71,6 +74,8 @@ function Flashcards({ note, onClose, onFinished }) {
     } else {
       onFinished?.(updatedKnownCount, totalCount)
       setIsComplete(true)
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 2600)
     }
   }
 
@@ -102,6 +107,7 @@ function Flashcards({ note, onClose, onFinished }) {
   if (isComplete) {
     return (
       <main className="kartice-screen status-panel">
+        {showConfetti && <Confetti />}
         <h1 className="quiz-results-heading">Vse kartončke znaš! 🎉</h1>
         <p className="status-message">Pregledal/a si {totalCount} kartončkov.</p>
         <div className="status-actions">

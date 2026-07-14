@@ -6,7 +6,7 @@ import ProgressRing from './ProgressRing.jsx'
 // Home is the app's landing screen: brand header, greeting, the single
 // "start something new" action, and (once they exist) cards for the user's
 // study topics. It receives everything as props from App.jsx.
-function Home({ notes, onSelectNote, onAddNote, onDeleteNote }) {
+function Home({ notes, streak, onSelectNote, onAddNote, onDeleteNote }) {
   const hasNotes = notes.length > 0
   const todaysReview = computeTodaysReview(notes)
 
@@ -17,7 +17,12 @@ function Home({ notes, onSelectNote, onAddNote, onDeleteNote }) {
           <div className="home-logo">P</div>
           <span className="home-wordmark">Piflar</span>
         </div>
-        {/* TODO: streak (🔥) feature — intentionally deferred */}
+        {streak > 0 && (
+          <div className="home-streak" title="Zaporedni dnevi učenja">
+            <span>🔥</span>
+            <span className="home-streak-count">{streak}</span>
+          </div>
+        )}
       </header>
 
       <div className="home-hero">

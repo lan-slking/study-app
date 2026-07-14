@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import ProgressRing from './ProgressRing.jsx'
+import Confetti from './Confetti.jsx'
+
+const CONFETTI_DURATION_MS = 2600
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -22,6 +25,7 @@ function Quiz({ note, subjectColor, onClose, onFinished }) {
   // One entry per answered question so far: { section, correct }
   const [results, setResults] = useState([])
   const [isFinished, setIsFinished] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   useEffect(() => {
     loadQuiz()
@@ -107,6 +111,10 @@ function Quiz({ note, subjectColor, onClose, onFinished }) {
       const correctCount = results.filter((r) => r.correct).length
       onFinished?.(correctCount, questions.length)
       setIsFinished(true)
+      if (correctCount === questions.length) {
+        setShowConfetti(true)
+        setTimeout(() => setShowConfetti(false), CONFETTI_DURATION_MS)
+      }
     }
   }
 
@@ -118,6 +126,7 @@ function Quiz({ note, subjectColor, onClose, onFinished }) {
     setGradeError(null)
     setResults([])
     setIsFinished(false)
+    setShowConfetti(false)
     loadQuiz()
   }
 
@@ -152,6 +161,7 @@ function Quiz({ note, subjectColor, onClose, onFinished }) {
 
     return (
       <main className="quiz-screen status-panel">
+        {showConfetti && <Confetti />}
         <ProgressRing correct={correctCount} total={questions.length} color={subjectColor} size={88} strokeWidth={7} />
         <h1 className="quiz-results-heading">Kviz končan! 🎉</h1>
         <p className="status-message">

@@ -34,6 +34,7 @@ function App() {
   // sensible instead of a blank screen while notes are loading.
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
+  const [streak, setStreak] = useState(0)
 
   // Tracks in-flight debounce timers per note id, so typing in note A doesn't
   // cancel a pending save for note B. Shape: { [noteId]: { timer, note } }.
@@ -54,6 +55,15 @@ function App() {
         const data = await response.json()
         if (cancelled) return
         setNotes(data)
+
+        // Best-effort — a failed streak fetch shouldn't block the app from
+        // loading notes, it just shows 0 until the next successful load.
+        fetch('/api/streak')
+          .then((r) => r.json())
+          .then((s) => {
+            if (!cancelled) setStreak(s.streak ?? 0)
+          })
+          .catch(() => {})
       } catch {
         if (!cancelled) {
           setLoadError(
@@ -194,9 +204,14 @@ function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, correct, total }),
-    }).catch((err) => {
-      console.error('Failed to log activity:', err)
     })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Number.isInteger(data.streak)) setStreak(data.streak)
+      })
+      .catch((err) => {
+        console.error('Failed to log activity:', err)
+      })
   }
 
   if (isLoading) {
@@ -249,6 +264,7 @@ function App() {
       {view === 'home' && (
         <Home
           notes={notes}
+          streak={streak}
           onSelectNote={handleSelectNote}
           onAddNote={() => setView('wizard')}
           onDeleteNote={handleDeleteNote}

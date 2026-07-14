@@ -118,6 +118,37 @@
   }
 }
 
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(-20px) rotate(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100vh) rotate(720deg);
+  }
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0.9;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
 .anim-slide-up {
   animation: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -483,6 +514,22 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+}
+
+.home-streak {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.home-streak-count {
+  font-variant-numeric: tabular-nums;
 }
 
 .home-brand {
