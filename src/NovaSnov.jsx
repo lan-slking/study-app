@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { SUBJECTS } from './subjects.js'
+import { SUBJECTS, subjectMeta, customSubjectsInUse } from './subjects.js'
 import { compressImage } from './compressImage.js'
 
-const TOTAL_STEPS = 3
+const TOTAL_STEPS = 4
 const PAGE_SEPARATOR = '\n\n---\n\n'
 
 const PROCESSING_MESSAGES = [
@@ -19,14 +19,16 @@ const MODES = [
 
 let nextPhotoId = 0
 
-// NovaSnov is the guided "create a study topic" flow: name + subject, add
+// NovaSnov is the guided "create a study topic" flow: subject, title, add
 // photos, pick a mode, then process everything into one note. Nothing is
 // saved to the backend until the very end (POST /api/notes) — up to that
 // point this is all local wizard state.
-function NovaSnov({ onCreated, onCancel }) {
+function NovaSnov({ notes, onCreated, onCancel }) {
   const [step, setStep] = useState(1)
-  const [title, setTitle] = useState('')
   const [subjectKey, setSubjectKey] = useState('')
+  const [showCustomSubject, setShowCustomSubject] = useState(false)
+  const [customSubjectDraft, setCustomSubjectDraft] = useState('')
+  const [title, setTitle] = useState('')
   const [photos, setPhotos] = useState([]) // { id, file, previewUrl }
   const [mode, setMode] = useState('full')
   const [phase, setPhase] = useState('form') // 'form' | 'processing' | 'error'
@@ -34,6 +36,7 @@ function NovaSnov({ onCreated, onCancel }) {
   const [messageIndex, setMessageIndex] = useState(0)
 
   const fileInputRef = useRef(null)
+  const customSubjects = customSubjectsInUse(notes)
 
   // Revoke object URLs for any remaining previews when the wizard unmounts —
   // read through a ref so the cleanup sees the latest photos, not whatever
@@ -55,6 +58,21 @@ function NovaSnov({ onCreated, onCancel }) {
     }, 1900)
     return () => clearInterval(timer)
   }, [phase])
+
+  function handleSelectSubject(key) {
+    setSubjectKey(key)
+    setShowCustomSubject(false)
+  }
+
+  function handleOpenCustomSubject() {
+    setShowCustomSubject(true)
+    setSubjectKey(customSubjectDraft.trim())
+  }
+
+  function handleCustomSubjectChange(value) {
+    setCustomSubjectDraft(value)
+    setSubjectKey(value.trim())
+  }
 
   function handleFilesSelected(e) {
     const files = Array.from(e.target.files)
@@ -161,7 +179,10 @@ function NovaSnov({ onCreated, onCancel }) {
   }
 
   const canGoNext =
-    (step === 1 && title.trim() && subjectKey) || (step === 2 && photos.length > 0) || step === 3
+    (step === 1 && Boolean(subjectKey)) ||
+    (step === 2 && Boolean(title.trim())) ||
+    (step === 3 && photos.length > 0) ||
+    step === 4
 
   function handleBack() {
     if (step === 1) {
@@ -178,6 +199,8 @@ function NovaSnov({ onCreated, onCancel }) {
       handleCreate()
     }
   }
+
+  const selectedSubject = subjectMeta(subjectKey)
 
   return (
     <main className="wizard">
@@ -203,23 +226,12 @@ function NovaSnov({ onCreated, onCancel }) {
 
       {step === 1 && (
         <div className="wizard-step anim-slide-in-right">
-          <h1>Kaj se učiš?</h1>
-          <p className="wizard-subtitle">Naslov si boš zapomnil ti, predmet pa Piflar.</p>
+          <h1>Kateri predmet?</h1>
+          <p className="wizard-subtitle">Izberi enega, ali dodaj svojega.</p>
 
-          <label className="wizard-label">Naslov</label>
-          <input
-            autoFocus
-            type="text"
-            className="text-input"
-            placeholder="npr. Newtonovi zakoni"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-
-          <label className="wizard-label">Predmet</label>
           <div className="wizard-subject-grid">
             {SUBJECTS.map((s) => {
-              const selected = subjectKey === s.key
+              const selected = !showCustomSubject && subjectKey === s.key
               return (
                 <button
                   key={s.key}
@@ -234,18 +246,95 @@ function NovaSnov({ onCreated, onCancel }) {
                         }
                       : { background: 'var(--card)', color: 'var(--foreground)', boxShadow: 'var(--shadow-card)' }
                   }
-                  onClick={() => setSubjectKey(s.key)}
+                  onClick={() => handleSelectSubject(s.key)}
                 >
                   <span className="subject-chip-emoji">{s.emoji}</span>
                   {s.label}
                 </button>
               )
             })}
+
+            {customSubjects.map((s) => {
+              const selected = !showCustomSubject && subjectKey === s.key
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  className="subject-chip-button tap"
+                  style={
+                    selected
+                      ? {
+                          background: `color-mix(in oklab, ${s.color} 25%, transparent)`,
+                          color: s.color,
+                          boxShadow: `0 0 0 2px ${s.color}, 0 8px 24px -12px ${s.color}`,
+                        }
+                      : { background: 'var(--card)', color: 'var(--foreground)', boxShadow: 'var(--shadow-card)' }
+                  }
+                  onClick={() => handleSelectSubject(s.key)}
+                >
+                  <span className="subject-chip-emoji">{s.emoji}</span>
+                  {s.label}
+                </button>
+              )
+            })}
+
+            <button
+              type="button"
+              className="subject-chip-button tap"
+              style={
+                showCustomSubject
+                  ? {
+                      background: 'color-mix(in oklab, var(--primary) 25%, transparent)',
+                      color: 'var(--primary)',
+                      boxShadow: '0 0 0 2px var(--primary), 0 8px 24px -12px var(--primary)',
+                    }
+                  : { background: 'var(--secondary)', color: 'var(--foreground)', boxShadow: 'var(--shadow-card)' }
+              }
+              onClick={handleOpenCustomSubject}
+            >
+              <span className="subject-chip-emoji">➕</span>
+              Drugo
+            </button>
           </div>
+
+          {showCustomSubject && (
+            <input
+              autoFocus
+              type="text"
+              className="text-input"
+              placeholder="Vpiši predmet, npr. Robotika"
+              value={customSubjectDraft}
+              onChange={(e) => handleCustomSubjectChange(e.target.value)}
+            />
+          )}
         </div>
       )}
 
       {step === 2 && (
+        <div className="wizard-step anim-slide-in-right">
+          {subjectKey && (
+            <span
+              className="wizard-subject-badge"
+              style={{ background: `color-mix(in oklab, ${selectedSubject.color} 20%, transparent)`, color: selectedSubject.color }}
+            >
+              {selectedSubject.emoji} {selectedSubject.label}
+            </span>
+          )}
+          <h1>Kako se imenuje snov?</h1>
+          <p className="wizard-subtitle">Nekaj, kar si boš zapomnil/a.</p>
+
+          <input
+            autoFocus
+            type="text"
+            className="text-input"
+            placeholder="npr. Newtonovi zakoni"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+      )}
+
+      {step === 3 && (
         <div className="wizard-step anim-slide-in-right">
           <h1>Dodaj fotografije</h1>
           <p className="wizard-subtitle">Slikaj strani zapiskov, po vrsti.</p>
@@ -284,7 +373,7 @@ function NovaSnov({ onCreated, onCancel }) {
         </div>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <div className="wizard-step anim-slide-in-right">
           <h1>Kako naj uredim zapiske?</h1>
           <p className="wizard-subtitle">Oboje lahko kasneje urediš ročno.</p>

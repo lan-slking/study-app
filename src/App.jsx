@@ -172,7 +172,9 @@ function App() {
 
   return (
     <div className="app">
-      {view === 'wizard' && <NovaSnov onCreated={handleNoteCreated} onCancel={() => setView('home')} />}
+      {view === 'wizard' && (
+        <NovaSnov notes={notes} onCreated={handleNoteCreated} onCancel={() => setView('home')} />
+      )}
 
       {view === 'note' && selectedNote && (
         <Zapiski

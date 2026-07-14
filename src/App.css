@@ -37,6 +37,18 @@
   --kemija: oklch(74% 0.19 155);
   --biologija: oklch(72% 0.18 195);
   --slovenscina: oklch(72% 0.2 350);
+  --anglescina: oklch(72% 0.2 10);
+  --ekonomija: oklch(72% 0.19 50);
+  --sociologija: oklch(72% 0.18 91);
+  --psihologija: oklch(72% 0.18 113);
+  --sport: oklch(72% 0.2 134);
+  --glasba: oklch(72% 0.18 175);
+  --geografija: oklch(72% 0.18 213);
+  --filozofija: oklch(72% 0.18 232);
+  --nemscina: oklch(72% 0.19 270);
+  --umetnost: oklch(72% 0.2 290);
+  --spanscina: oklch(72% 0.2 310);
+  --informatika: oklch(72% 0.19 330);
 
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, oklch(68% 0.25 300), oklch(75% 0.2 260));
@@ -279,7 +291,7 @@
 
 /* Shared text input style — wizard title, quiz short-answer. */
 .text-input {
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   width: 100%;
   border: none;
   border-radius: var(--radius);
@@ -720,18 +732,17 @@
   font-size: 0.9rem;
 }
 
-.wizard-label {
-  display: block;
-  margin-top: 1.75rem;
-  font-size: 0.75rem;
+.wizard-subject-badge {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted-foreground);
 }
 
 .wizard-subject-grid {
-  margin-top: 0.75rem;
+  margin-top: 1.25rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
