@@ -9,7 +9,12 @@ const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 // Quiz walks through a set of Gemini-generated questions for one note, one at
 // a time: answer, get graded with an explanation, then move on. At the end it
 // shows a score and which sections of the note to review.
-function Quiz({ note, subjectColor, onClose, onFinished }) {
+//
+// quizEndpoint/gradeEndpoint let this be reused for a publicly shared note
+// (see SharedNote.jsx), which has no note id of its own to build a URL from
+// and grades through a separate public route that never touches the owner's
+// stored quiz score.
+function Quiz({ quizEndpoint, gradeEndpoint = '/api/grade-answer', subjectColor, onClose, onFinished }) {
   // 'loading' | 'ready' | 'error' — covers fetching the quiz itself.
   const [status, setStatus] = useState('loading')
   const [loadError, setLoadError] = useState(null)
@@ -29,16 +34,16 @@ function Quiz({ note, subjectColor, onClose, onFinished }) {
 
   useEffect(() => {
     loadQuiz()
-    // Only reload when the note itself changes — loadQuiz is stable enough
-    // for this component's lifetime.
+    // Only reload when the endpoint itself changes — loadQuiz is stable
+    // enough for this component's lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note.id])
+  }, [quizEndpoint])
 
   async function loadQuiz() {
     setStatus('loading')
     setLoadError(null)
     try {
-      const response = await fetch(`/api/notes/${note.id}/quiz`, { method: 'POST' })
+      const response = await fetch(quizEndpoint, { method: 'POST' })
       let data
       try {
         data = await response.json()
@@ -72,7 +77,7 @@ function Quiz({ note, subjectColor, onClose, onFinished }) {
     setIsGrading(true)
     setGradeError(null)
     try {
-      const response = await fetch('/api/grade-answer', {
+      const response = await fetch(gradeEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

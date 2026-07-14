@@ -241,7 +241,7 @@ function App() {
 
       {view === 'quiz' && selectedNote && (
         <Quiz
-          note={selectedNote}
+          quizEndpoint={`/api/notes/${selectedNote.id}/quiz`}
           subjectColor={subjectMeta(selectedNote.subject).color}
           onClose={() => setView('note')}
           onFinished={handleQuizFinished}

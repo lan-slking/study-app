@@ -81,6 +81,12 @@ export async function initDb() {
   if (!existingColumns.includes("last_reviewed_at")) {
     db.run("ALTER TABLE notes ADD COLUMN last_reviewed_at TEXT");
   }
+  // A random token that makes a note readable (and quiz-able) via the public
+  // /api/shared/:token routes without authentication — null until the owner
+  // first clicks "Deli". Sharing never exposes anything but this one note.
+  if (!existingColumns.includes("share_token")) {
+    db.run("ALTER TABLE notes ADD COLUMN share_token TEXT");
+  }
 
   // One row per completed study session (quiz / flashcards / fill_blank),
   // across all notes. Powers the Domov streak (distinct days with at least
@@ -98,6 +104,20 @@ export async function initDb() {
   `);
 
   persist();
+}
+
+export function getNoteByShareToken(token) {
+  const stmt = db.prepare("SELECT * FROM notes WHERE share_token = ?");
+  stmt.bind([token]);
+  const note = stmt.step() ? stmt.getAsObject() : null;
+  stmt.free();
+  return note;
+}
+
+export function setShareToken(id, token) {
+  db.run("UPDATE notes SET share_token = ? WHERE id = ?", [token, id]);
+  persist();
+  return getNoteById(id);
 }
 
 export function getAllNotes() {

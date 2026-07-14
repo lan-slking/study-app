@@ -1,4 +1,5 @@
 import "dotenv/config";
+import crypto from "crypto";
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -14,6 +15,8 @@ import {
   invalidateGeneratedContent,
   logActivity,
   getStreak,
+  getNoteByShareToken,
+  setShareToken,
 } from "./db.js";
 import { generateValidatedJson, describeGeminiError } from "./geminiJson.js";
 
@@ -132,6 +135,63 @@ app.post("/api/notes/:id/activity", (req, res) => {
 
 app.get("/api/streak", (req, res) => {
   res.json({ streak: getStreak() });
+});
+
+// --- Sharing ---
+// A note's share link is stable once created (clicking "Deli" again returns
+// the same token, not a new one) and is read-only: the public routes below
+// expose only that one note's title/content/subject, and a quiz taken
+// through them is generated the same way as the owner's (from the cache if
+// warm) but never logged as the owner's activity or quiz score — an
+// anonymous visitor's attempt isn't the owner's result.
+
+app.post("/api/notes/:id/share", (req, res) => {
+  const id = Number(req.params.id);
+  const note = Number.isInteger(id) ? getNoteById(id) : null;
+  if (!note) {
+    return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
+  }
+
+  const token = note.share_token || crypto.randomBytes(12).toString("hex");
+  if (!note.share_token) setShareToken(id, token);
+
+  res.json({ shareToken: token });
+});
+
+app.get("/api/shared/:token", (req, res) => {
+  const note = getNoteByShareToken(req.params.token);
+  if (!note) {
+    return res.status(404).json({ error: "Ta povezava ni (več) veljavna." });
+  }
+  res.json({ title: note.title, content: note.content, subject: note.subject });
+});
+
+app.post("/api/shared/:token/quiz", async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(500).json({
+      error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
+    });
+  }
+
+  const note = getNoteByShareToken(req.params.token);
+  if (!note) {
+    return res.status(404).json({ error: "Ta povezava ni (več) veljavna." });
+  }
+  if (!note.content.trim()) {
+    return res.status(400).json({ error: "Ta zapisek še nima vsebine, iz katere bi lahko naredili kviz." });
+  }
+
+  try {
+    const quiz = await getOrGenerateStudyContent(note, "quiz_json", {
+      prompt: buildQuizPrompt(note.content),
+      validate: validateQuiz,
+    });
+    res.json(quiz);
+  } catch (err) {
+    console.error("Shared quiz generation error:", err);
+    const message = describeGeminiError(err) || "Kviza ni bilo mogoče ustvariti. Poskusi znova.";
+    res.status(500).json({ error: message });
+  }
 });
 
 // The two prompts the "Upload photo" feature can use, keyed by the `mode` field

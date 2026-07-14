@@ -15,6 +15,11 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
   const [isExportingCsv, setIsExportingCsv] = useState(false)
   const [exportError, setExportError] = useState(null)
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
+  const [shareLink, setShareLink] = useState(null)
+  const [shareError, setShareError] = useState(null)
+  const [copyFeedback, setCopyFeedback] = useState(false)
   const subject = subjectMeta(note.subject)
   const hasContent = Boolean(note.content.trim())
   const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
@@ -44,6 +49,41 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
       setExportError(err.message || 'Izvoz ni uspel. Poskusi znova.')
     } finally {
       setIsExportingCsv(false)
+    }
+  }
+
+  async function handleToggleShare() {
+    setIsShareMenuOpen((v) => !v)
+    setShareError(null)
+    setCopyFeedback(false)
+    if (shareLink) return // already generated this session — same link every time
+
+    setIsSharing(true)
+    try {
+      const response = await fetch(`/api/notes/${note.id}/share`, { method: 'POST' })
+      let data
+      try {
+        data = await response.json()
+      } catch {
+        throw new Error('Strežnika ni bilo mogoče doseči. Preveri, ali backend teče.')
+      }
+      if (!response.ok) {
+        throw new Error(data.error || 'Povezave za deljenje ni bilo mogoče ustvariti.')
+      }
+      setShareLink(`${window.location.origin}/shared/${data.shareToken}`)
+    } catch (err) {
+      setShareError(err.message || 'Povezave za deljenje ni bilo mogoče ustvariti.')
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
+  async function handleCopyShareLink() {
+    try {
+      await navigator.clipboard.writeText(shareLink)
+      setCopyFeedback(true)
+    } catch {
+      setCopyFeedback(false)
     }
   }
 
@@ -79,6 +119,33 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
                     📝 Zapiski (Markdown)
                   </button>
                   {exportError && <p className="export-menu-error">{exportError}</p>}
+                </div>
+              )}
+            </div>
+
+            <div className="export-menu-wrap">
+              <button
+                type="button"
+                className="icon-button tap"
+                onClick={handleToggleShare}
+                disabled={!hasContent}
+                aria-label="Deli"
+              >
+                🔗
+              </button>
+
+              {isShareMenuOpen && (
+                <div className="export-menu">
+                  {isSharing && <p className="export-menu-item">Ustvarjam povezavo ...</p>}
+                  {shareError && <p className="export-menu-error">{shareError}</p>}
+                  {shareLink && (
+                    <>
+                      <p className="share-link-text">{shareLink}</p>
+                      <button type="button" className="export-menu-item tap" onClick={handleCopyShareLink}>
+                        {copyFeedback ? '✓ Kopirano!' : '📋 Kopiraj povezavo'}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

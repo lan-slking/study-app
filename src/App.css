@@ -1065,7 +1065,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  width: 13rem;
+  width: 16rem;
   padding: 0.5rem;
   border-radius: var(--radius);
   background-color: var(--card);
@@ -1101,6 +1101,17 @@
   font-size: 0.75rem;
 }
 
+.share-link-text {
+  margin: 0.25rem 0.25rem 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  word-break: break-all;
+  user-select: all;
+}
+
 .zapiski-header {
   margin-top: 1.5rem;
 }
@@ -1113,6 +1124,25 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.shared-note-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+}
+
+.shared-note-footer {
+  margin-top: 2rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
 }
 
 .zapiski-title {
