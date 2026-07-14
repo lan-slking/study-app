@@ -177,12 +177,14 @@
 }
 
 /* --- Shared screen shell ---
-   Every top-level screen is a single, narrow (phone-width) column centered
-   on any viewport size — mirrors the reference's "mx-auto max-w-[440px]"
-   pattern used on every page. */
+   On mobile, every top-level screen is a single, narrow (phone-width)
+   column — mirrors the reference's "mx-auto max-w-[440px]" pattern. From
+   640px up, each screen's own responsive rules (further down this file)
+   widen and reflow it instead of just stretching the same column. Zapiski
+   is excluded here — it wraps its padded content in .zapiski-main so the
+   action buttons can become a sidebar at desktop; see its own rule below. */
 .home,
 .wizard,
-.zapiski,
 .quiz-screen,
 .kartice-screen {
   flex: 1;
@@ -193,6 +195,24 @@
   padding: 2.5rem 1.5rem 8rem;
   display: flex;
   flex-direction: column;
+}
+
+.zapiski {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.zapiski-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 2.5rem 1.5rem 8rem;
 }
 
 /* Small circular icon button — back arrows, close buttons, the edit pencil. */
@@ -1377,10 +1397,228 @@
 @media (max-width: 400px) {
   .home,
   .wizard,
-  .zapiski,
+  .zapiski-main,
   .quiz-screen,
   .kartice-screen {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
+  }
+}
+
+/* ==========================================================================
+   Tablet & desktop
+   Two breakpoints: 640px (tablet — Home grid widens, cards get breathing
+   room) and 1024px (desktop — multi-column layouts, sidebar, hover states).
+   Mobile styles above are the baseline; everything here only adds to or
+   overrides them at larger widths, per a mobile-first approach.
+   ========================================================================== */
+
+/* --- Tablet (640px+) --- */
+@media (min-width: 640px) {
+  .home {
+    max-width: 700px;
+  }
+
+  .note-card-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .wizard,
+  .quiz-screen,
+  .kartice-screen {
+    max-width: 600px;
+  }
+
+  .photo-preview-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* --- Desktop (1024px+) --- */
+@media (min-width: 1024px) {
+  /* Global: a generous but bounded container — text never runs full-width
+     on a wide monitor. */
+  .home {
+    max-width: 1160px;
+  }
+
+  /* Domov: greeting and the CTA share a header row instead of stacking,
+     and cards reflow into a 3-column grid. */
+  .home-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .home-greeting {
+    margin-top: 0;
+  }
+
+  .home-cta {
+    width: auto;
+    min-width: 22rem;
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+
+  .note-card-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Zapiski: a proper two-column reading layout — a comfortable-width
+     column for the notes, with Kviz/Kartice as a sidebar instead of a
+     fixed mobile-style bottom bar. */
+  .zapiski {
+    max-width: 980px;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 2.5rem;
+    padding-top: 3rem;
+  }
+
+  .zapiski-main {
+    max-width: 720px;
+    min-height: 0;
+    padding: 0 0 3rem;
+  }
+
+  .zapiski-content {
+    font-size: 1.05rem;
+  }
+
+  .zapiski-title {
+    font-size: 2.25rem;
+  }
+
+  .zapiski-actionbar {
+    position: sticky;
+    top: 3rem;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    align-self: flex-start;
+    width: 220px;
+    flex-shrink: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .zapiski-actionbar-inner {
+    flex-direction: column;
+    padding: 0.75rem;
+  }
+
+  .zapiski-actionbar-inner .action-button {
+    flex: none;
+    width: 100%;
+  }
+
+  /* Nova snov & Kviz: a centered card instead of a full-height, full-width
+     column — these are focused, transient interactions, not a page you
+     scroll through, so they no longer need to stretch to the viewport. */
+  .wizard,
+  .quiz-screen {
+    flex: none;
+    align-self: center;
+    width: 100%;
+    max-width: 640px;
+    margin: 3rem auto;
+    padding: 2.5rem;
+    background-color: var(--card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+  }
+
+  .wizard .fixed-footer,
+  .quiz-screen .fixed-footer {
+    position: static;
+    max-width: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    background: none;
+  }
+
+  .kartice-screen {
+    flex: none;
+    align-self: center;
+    width: 100%;
+    max-width: 640px;
+    margin: 3rem auto;
+    padding: 2.5rem;
+    background-color: var(--card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Larger typography for the more focused desktop card layouts. */
+  .quiz-question {
+    font-size: 1.75rem;
+  }
+
+  .quiz-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .flip-card-face-content {
+    font-size: 1.625rem;
+  }
+
+  .flip-card-inner {
+    height: 20rem;
+  }
+
+  .wizard-step h1 {
+    font-size: 2.125rem;
+  }
+}
+
+/* --- Hover states (desktop pointer devices only) ---
+   Deliberately gated on (hover: hover) rather than a width breakpoint —
+   touchscreens with a wide viewport (e.g. tablets) shouldn't get a
+   permanently "stuck" hover effect from the last tapped element. */
+@media (hover: hover) and (pointer: fine) {
+  .note-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px -8px oklch(0% 0 0 / 0.55);
+  }
+
+  .primary-button:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+
+  .secondary-button:hover {
+    background-color: color-mix(in oklab, var(--secondary) 80%, var(--foreground));
+  }
+
+  .action-button:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+
+  .icon-button:hover {
+    background-color: color-mix(in oklab, var(--card) 80%, var(--foreground));
+  }
+
+  .subject-chip-button:hover {
+    transform: translateY(-1px);
+  }
+
+  .mode-option:hover {
+    box-shadow: 0 0 0 2px var(--border), var(--shadow-card);
+  }
+
+  .quiz-option:hover:not(:disabled) {
+    box-shadow: 0 0 0 2px var(--border);
+  }
+
+  /* The flip itself is an inline style (rotateY), which always wins over a
+     stylesheet rule on the same element — so the hover "lift" is applied to
+     the outer button instead, not .flip-card-inner. */
+  .flip-card:hover {
+    transform: scale(1.02);
   }
 }

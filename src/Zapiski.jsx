@@ -15,65 +15,67 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards }) {
 
   return (
     <main className="zapiski">
-      <div className="zapiski-topbar">
-        <button type="button" className="icon-button tap" onClick={onBack} aria-label="Nazaj">
-          ←
-        </button>
-        <button
-          type="button"
-          className="icon-button tap"
-          onClick={() => setIsEditing((v) => !v)}
-          aria-label={isEditing ? 'Končaj urejanje' : 'Uredi'}
-        >
-          {isEditing ? '✓' : '✏️'}
-        </button>
-      </div>
-
-      <div className="zapiski-header anim-slide-up">
-        {subject.label && (
-          <span
-            className="zapiski-subject-chip"
-            style={{ background: `color-mix(in oklab, ${subject.color} 20%, transparent)`, color: subject.color }}
+      <div className="zapiski-main">
+        <div className="zapiski-topbar">
+          <button type="button" className="icon-button tap" onClick={onBack} aria-label="Nazaj">
+            ←
+          </button>
+          <button
+            type="button"
+            className="icon-button tap"
+            onClick={() => setIsEditing((v) => !v)}
+            aria-label={isEditing ? 'Končaj urejanje' : 'Uredi'}
           >
-            {subject.emoji} {subject.label}
-          </span>
-        )}
+            {isEditing ? '✓' : '✏️'}
+          </button>
+        </div>
+
+        <div className="zapiski-header anim-slide-up">
+          {subject.label && (
+            <span
+              className="zapiski-subject-chip"
+              style={{ background: `color-mix(in oklab, ${subject.color} 20%, transparent)`, color: subject.color }}
+            >
+              {subject.emoji} {subject.label}
+            </span>
+          )}
+
+          {isEditing ? (
+            <input
+              type="text"
+              className="zapiski-title-input"
+              value={note.title}
+              placeholder="Naslov snovi"
+              onChange={(e) => onUpdateNote({ title: e.target.value })}
+            />
+          ) : (
+            <h1 className="zapiski-title">{note.title || 'Neimenovana snov'}</h1>
+          )}
+
+          <div className="zapiski-meta">
+            {note.mode && MODE_LABELS[note.mode] && <span>{MODE_LABELS[note.mode]}</span>}
+            {note.mode && MODE_LABELS[note.mode] && <span>•</span>}
+            <span>{formatRelativeDate(note.updated_at)}</span>
+          </div>
+        </div>
 
         {isEditing ? (
-          <input
-            type="text"
-            className="zapiski-title-input"
-            value={note.title}
-            placeholder="Naslov snovi"
-            onChange={(e) => onUpdateNote({ title: e.target.value })}
+          <textarea
+            className="zapiski-textarea anim-slide-up"
+            value={note.content}
+            placeholder="Začni pisati ..."
+            onChange={(e) => onUpdateNote({ content: e.target.value })}
           />
         ) : (
-          <h1 className="zapiski-title">{note.title || 'Neimenovana snov'}</h1>
+          <article className="zapiski-content anim-slide-up" style={{ '--subject-color': subject.color }}>
+            {hasContent ? (
+              <ReactMarkdown>{note.content}</ReactMarkdown>
+            ) : (
+              <p className="zapiski-content-empty">Ta snov je še prazna — dotakni se ✏️, da nekaj napišeš.</p>
+            )}
+          </article>
         )}
-
-        <div className="zapiski-meta">
-          {note.mode && MODE_LABELS[note.mode] && <span>{MODE_LABELS[note.mode]}</span>}
-          {note.mode && MODE_LABELS[note.mode] && <span>•</span>}
-          <span>{formatRelativeDate(note.updated_at)}</span>
-        </div>
       </div>
-
-      {isEditing ? (
-        <textarea
-          className="zapiski-textarea anim-slide-up"
-          value={note.content}
-          placeholder="Začni pisati ..."
-          onChange={(e) => onUpdateNote({ content: e.target.value })}
-        />
-      ) : (
-        <article className="zapiski-content anim-slide-up" style={{ '--subject-color': subject.color }}>
-          {hasContent ? (
-            <ReactMarkdown>{note.content}</ReactMarkdown>
-          ) : (
-            <p className="zapiski-content-empty">Ta snov je še prazna — dotakni se ✏️, da nekaj napišeš.</p>
-          )}
-        </article>
-      )}
 
       <div className="zapiski-actionbar">
         <div className="zapiski-actionbar-inner">

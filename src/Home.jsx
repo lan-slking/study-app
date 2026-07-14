@@ -18,26 +18,28 @@ function Home({ notes, onSelectNote, onAddNote, onDeleteNote }) {
         {/* TODO: streak (🔥) feature — intentionally deferred */}
       </header>
 
-      <div className="home-greeting anim-slide-up" style={{ animationDelay: '60ms' }}>
-        <h1>
-          Živjo! <span className="anim-float-slow">👋</span>
-        </h1>
-        <p>Slikaj zapiske, dobi kviz.</p>
-      </div>
+      <div className="home-hero">
+        <div className="home-greeting anim-slide-up" style={{ animationDelay: '60ms' }}>
+          <h1>
+            Živjo! <span className="anim-float-slow">👋</span>
+          </h1>
+          <p>Slikaj zapiske, dobi kviz.</p>
+        </div>
 
-      <button
-        type="button"
-        className="home-cta tap anim-pop-in"
-        style={{ animationDelay: '120ms' }}
-        onClick={onAddNote}
-      >
-        <span className="home-cta-icon">➕</span>
-        <span className="home-cta-text">
-          <span className="home-cta-title">Nova snov</span>
-          <span className="home-cta-subtitle">Slikaj in začni v 30 sekundah</span>
-        </span>
-        <span className="home-cta-arrow">→</span>
-      </button>
+        <button
+          type="button"
+          className="home-cta tap anim-pop-in"
+          style={{ animationDelay: '120ms' }}
+          onClick={onAddNote}
+        >
+          <span className="home-cta-icon">➕</span>
+          <span className="home-cta-text">
+            <span className="home-cta-title">Nova snov</span>
+            <span className="home-cta-subtitle">Slikaj in začni v 30 sekundah</span>
+          </span>
+          <span className="home-cta-arrow">→</span>
+        </button>
+      </div>
 
       <div className="home-section-header anim-slide-up" style={{ animationDelay: '200ms' }}>
         <h2>Tvoje snovi</h2>
