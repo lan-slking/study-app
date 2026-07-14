@@ -1,17 +1,26 @@
-// Circular "correct/total" indicator — small on Home's subject cards, larger
-// on the Kviz results screen. Empty/gray until a score actually exists.
-function ProgressRing({ correct, total, color, size = 44, strokeWidth = 4 }) {
+// Circular progress indicator — small on Home's subject cards (blended
+// mastery, see mastery.js), larger on Kviz/Dopolnjevanje results screens
+// (that session's correct/total). Empty/gray until a value actually exists.
+//
+// Two ways to drive it: pass `correct`/`total` for a plain fraction (Quiz,
+// Dopolnjevanje), or an explicit `ratio` (0-1, or null for "no data yet")
+// plus its own `label` when the caller already has a computed percentage
+// rather than a literal fraction (Home's mastery ring).
+function ProgressRing({ correct, total, ratio, label, title, color, size = 44, strokeWidth = 4 }) {
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
-  const hasScore = Number.isInteger(total) && total > 0
-  const ratio = hasScore ? correct / total : 0
-  const offset = circumference * (1 - ratio)
+
+  const usingRatio = ratio !== undefined
+  const hasValue = usingRatio ? ratio !== null : Number.isInteger(total) && total > 0
+  const effectiveRatio = usingRatio ? ratio ?? 0 : hasValue ? correct / total : 0
+  const displayLabel = usingRatio ? label ?? '–' : hasValue ? `${correct}/${total}` : '–'
+  const offset = circumference * (1 - effectiveRatio)
 
   return (
-    <div className="progress-ring" style={{ width: size, height: size }}>
+    <div className="progress-ring" style={{ width: size, height: size }} title={title}>
       <svg width={size} height={size} className="progress-ring-svg">
         <circle cx={size / 2} cy={size / 2} r={radius} stroke="var(--border)" strokeWidth={strokeWidth} fill="none" />
-        {hasScore && (
+        {hasValue && (
           <circle
             className="progress-ring-fill"
             cx={size / 2}
@@ -28,9 +37,9 @@ function ProgressRing({ correct, total, color, size = 44, strokeWidth = 4 }) {
       </svg>
       <span
         className="progress-ring-label"
-        style={{ color: hasScore ? color : 'var(--muted-foreground)', fontSize: size / 4.4 }}
+        style={{ color: hasValue ? color : 'var(--muted-foreground)', fontSize: size / 4.4 }}
       >
-        {hasScore ? `${correct}/${total}` : '–'}
+        {displayLabel}
       </span>
     </div>
   )

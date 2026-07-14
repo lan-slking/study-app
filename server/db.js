@@ -87,6 +87,22 @@ export async function initDb() {
   if (!existingColumns.includes("share_token")) {
     db.run("ALTER TABLE notes ADD COLUMN share_token TEXT");
   }
+  // Last result per study mode — mirrors last_quiz_correct/total, which
+  // originally only tracked Kviz. Together the three pairs feed mastery.js's
+  // blended "how well do you know this" score, so Kartončki and
+  // Dopolnjevanje sessions count toward it too, not just Kviz.
+  if (!existingColumns.includes("last_flashcards_correct")) {
+    db.run("ALTER TABLE notes ADD COLUMN last_flashcards_correct INTEGER");
+  }
+  if (!existingColumns.includes("last_flashcards_total")) {
+    db.run("ALTER TABLE notes ADD COLUMN last_flashcards_total INTEGER");
+  }
+  if (!existingColumns.includes("last_fill_blank_correct")) {
+    db.run("ALTER TABLE notes ADD COLUMN last_fill_blank_correct INTEGER");
+  }
+  if (!existingColumns.includes("last_fill_blank_total")) {
+    db.run("ALTER TABLE notes ADD COLUMN last_fill_blank_total INTEGER");
+  }
 
   // One row per completed study session (quiz / flashcards / fill_blank),
   // across all notes. Powers the Domov streak (distinct days with at least
@@ -156,19 +172,20 @@ export function createNote({ title, content, subject = "", mode = "", testDate =
   return getNoteById(id);
 }
 
-export function updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal, testDate }) {
+// Quiz/flashcards/fill-blank results are updated exclusively through
+// logActivity below (POST .../activity) now — a single path that also logs
+// history and bumps last_reviewed_at, instead of this general-purpose
+// update silently accepting a score with none of that.
+export function updateNote(id, { title, content, subject, testDate }) {
   const existing = getNoteById(id);
   if (!existing) return null;
 
   db.run(
-    `UPDATE notes SET title = ?, content = ?, subject = ?, last_quiz_correct = ?, last_quiz_total = ?,
-     test_date = ?, updated_at = datetime('now') WHERE id = ?`,
+    `UPDATE notes SET title = ?, content = ?, subject = ?, test_date = ?, updated_at = datetime('now') WHERE id = ?`,
     [
       title !== undefined ? title : existing.title,
       content !== undefined ? content : existing.content,
       subject !== undefined ? subject : existing.subject,
-      lastQuizCorrect !== undefined ? lastQuizCorrect : existing.last_quiz_correct,
-      lastQuizTotal !== undefined ? lastQuizTotal : existing.last_quiz_total,
       testDate !== undefined ? testDate : existing.test_date,
       id,
     ],
@@ -214,6 +231,15 @@ export function invalidateGeneratedContent(id) {
 // Records one completed study session and bumps the note's last-reviewed
 // timestamp — this is what "a day counts toward the streak" and "has this
 // note been reviewed today" (see reviewPlan.js) are both based on.
+// Maps an activity type to the note columns that track its most recent
+// result — used so logActivity can update the right pair below without a
+// separate call per study mode (see mastery.js, which reads these back).
+const ACTIVITY_SCORE_COLUMNS = {
+  quiz: ["last_quiz_correct", "last_quiz_total"],
+  flashcards: ["last_flashcards_correct", "last_flashcards_total"],
+  fill_blank: ["last_fill_blank_correct", "last_fill_blank_total"],
+};
+
 export function logActivity(noteId, { type, correct, total }) {
   db.run("INSERT INTO activity (note_id, type, correct, total) VALUES (?, ?, ?, ?)", [
     noteId,
@@ -221,7 +247,17 @@ export function logActivity(noteId, { type, correct, total }) {
     correct ?? null,
     total ?? null,
   ]);
-  db.run("UPDATE notes SET last_reviewed_at = datetime('now') WHERE id = ?", [noteId]);
+
+  const scoreColumns = ACTIVITY_SCORE_COLUMNS[type];
+  if (scoreColumns) {
+    const [correctColumn, totalColumn] = scoreColumns;
+    db.run(
+      `UPDATE notes SET last_reviewed_at = datetime('now'), ${correctColumn} = ?, ${totalColumn} = ? WHERE id = ?`,
+      [correct ?? null, total ?? null, noteId],
+    );
+  } else {
+    db.run("UPDATE notes SET last_reviewed_at = datetime('now') WHERE id = ?", [noteId]);
+  }
   persist();
 }
 

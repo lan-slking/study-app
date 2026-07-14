@@ -80,8 +80,8 @@ app.put("/api/notes/:id", (req, res) => {
   }
 
   const before = getNoteById(id);
-  const { title, content, subject, lastQuizCorrect, lastQuizTotal, testDate } = req.body;
-  let note = updateNote(id, { title, content, subject, lastQuizCorrect, lastQuizTotal, testDate });
+  const { title, content, subject, testDate } = req.body;
+  let note = updateNote(id, { title, content, subject, testDate });
 
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });

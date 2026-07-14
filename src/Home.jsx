@@ -1,6 +1,7 @@
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
 import { daysUntilTest, formatDaysUntilTest, computeTodaysReview } from './reviewPlan.js'
+import { computeMastery } from './mastery.js'
 import ProgressRing from './ProgressRing.jsx'
 
 // Home is the app's landing screen: brand header, greeting, the single
@@ -79,6 +80,7 @@ function Home({ notes, streak, onSelectNote, onAddNote, onDeleteNote }) {
           {notes.map((note, index) => {
             const subject = subjectMeta(note.subject)
             const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
+            const mastery = computeMastery(note)
             return (
               <li
                 key={note.id}
@@ -107,7 +109,14 @@ function Home({ notes, streak, onSelectNote, onAddNote, onDeleteNote }) {
                       {testCountdown && <span className="note-card-countdown">🗓️ {testCountdown}</span>}
                     </div>
                   </div>
-                  <ProgressRing correct={note.last_quiz_correct} total={note.last_quiz_total} color={subject.color} />
+                  <ProgressRing
+                    ratio={mastery !== null ? mastery / 100 : null}
+                    label={mastery !== null ? `${mastery}%` : undefined}
+                    title={mastery !== null ? `Skupno znanje: ${mastery} %` : 'Še ni podatkov o znanju'}
+                    color={subject.color}
+                    size={44}
+                    strokeWidth={4}
+                  />
                 </button>
 
                 <button

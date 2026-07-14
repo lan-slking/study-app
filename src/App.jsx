@@ -12,6 +12,15 @@ import './App.css'
 // Without this, every single keystroke would fire its own PUT request.
 const SAVE_DEBOUNCE_MS = 600
 
+// Maps an activity type to the note fields tracking its most recent result —
+// mirrors ACTIVITY_SCORE_COLUMNS in server/db.js, used here only to mirror
+// that update locally (see handleActivityLogged).
+const ACTIVITY_SCORE_FIELDS = {
+  quiz: ['last_quiz_correct', 'last_quiz_total'],
+  flashcards: ['last_flashcards_correct', 'last_flashcards_total'],
+  fill_blank: ['last_fill_blank_correct', 'last_fill_blank_total'],
+}
+
 // Matches SQLite's own datetime('now') shape ("YYYY-MM-DD HH:MM:SS", UTC) —
 // used only for the optimistic local update in handleActivityLogged below,
 // so it parses the same way as the real value that comes back from the
@@ -165,40 +174,34 @@ function App() {
     scheduleSave(selectedId, updatedNote)
   }
 
-  // Persist a finished quiz's score onto the note, so Home's progress ring
-  // reflects it next time — reuses the existing notes PUT endpoint.
   function handleQuizFinished(correct, total) {
-    if (selectedId === null) return
-    setNotes((prev) =>
-      prev.map((note) =>
-        note.id === selectedId ? { ...note, last_quiz_correct: correct, last_quiz_total: total } : note,
-      ),
-    )
-    fetch(`/api/notes/${selectedId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lastQuizCorrect: correct, lastQuizTotal: total }),
-    }).catch((err) => {
-      console.error('Failed to save quiz result:', err)
-    })
     handleActivityLogged(selectedId, 'quiz', correct, total)
   }
 
   function handleFlashcardsFinished(correct, total) {
-    if (selectedId === null) return
     handleActivityLogged(selectedId, 'flashcards', correct, total)
   }
 
   function handleDopolnjevanjeFinished(correct, total) {
-    if (selectedId === null) return
     handleActivityLogged(selectedId, 'fill_blank', correct, total)
   }
 
-  // Logs a completed study session (quiz / flashcards / fill_blank) — feeds
-  // the Domov streak and the "reviewed today" check in the review plan.
+  // Logs a completed study session (quiz / flashcards / fill_blank). Updates
+  // that mode's last result on the note — mastery.js blends all three into
+  // Home's progress ring, so every study mode now feeds it, not just Kviz —
+  // and feeds the Domov streak and the "reviewed today" check in the review
+  // plan. A single call on the backend (POST .../activity) handles all of
+  // this server-side; the map here only mirrors it locally so the UI
+  // updates instantly instead of waiting for a refetch.
   function handleActivityLogged(noteId, type, correct, total) {
+    if (noteId === null) return
+    const scoreFields = ACTIVITY_SCORE_FIELDS[type]
     setNotes((prev) =>
-      prev.map((note) => (note.id === noteId ? { ...note, last_reviewed_at: sqliteTimestampNow() } : note)),
+      prev.map((note) => {
+        if (note.id !== noteId) return note
+        const scoreUpdate = scoreFields ? { [scoreFields[0]]: correct, [scoreFields[1]]: total } : {}
+        return { ...note, ...scoreUpdate, last_reviewed_at: sqliteTimestampNow() }
+      }),
     )
     fetch(`/api/notes/${noteId}/activity`, {
       method: 'POST',

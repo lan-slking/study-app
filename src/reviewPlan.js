@@ -1,10 +1,27 @@
-// Simple spaced-repetition review plan: for notes with a set test date,
-// schedule review checkpoints at 7, 4, 2, 1, and 0 days before the test —
-// spacing reviews further apart early on and closer together as the test
-// nears, per standard spaced-repetition practice. Intentionally simple
-// (fixed checkpoints, no per-note difficulty adjustment) — a starting point
-// to refine later, not a full SRS algorithm.
+import { computeMastery } from './mastery.js'
+
+// Simple review plan, in two parts:
+//
+// - A note WITH a test date follows fixed checkpoints at 7, 4, 2, 1, and 0
+//   days before the test — spacing reviews further apart early on and
+//   closer together as the test nears, per standard spaced-repetition
+//   practice.
+// - A note WITHOUT a test date still gets reviewed, on an interval based on
+//   its mastery score (mastery.js): never studied or weak (<50%) comes back
+//   tomorrow, medium (<80%) every 3 days, strong every 7 — so the app keeps
+//   inviting you back even when nothing's on the calendar, instead of only
+//   ever nudging you toward an upcoming exam.
+//
+// Intentionally simple in both cases (fixed checkpoints/intervals, no
+// per-note ease factor like a real SRS) — a starting point to refine later.
 const CHECKPOINT_DAYS_BEFORE_TEST = [7, 4, 2, 1, 0]
+const NEVER_STUDIED_INTERVAL_DAYS = 0
+const WEAK_INTERVAL_DAYS = 1
+const MEDIUM_INTERVAL_DAYS = 3
+const STRONG_INTERVAL_DAYS = 7
+const WEAK_MASTERY_THRESHOLD = 50
+const MEDIUM_MASTERY_THRESHOLD = 80
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 function startOfDay(date) {
@@ -13,6 +30,11 @@ function startOfDay(date) {
 
 function daysBetween(a, b) {
   return Math.round((startOfDay(a) - startOfDay(b)) / DAY_MS)
+}
+
+// SQLite's datetime('now') shape ("YYYY-MM-DD HH:MM:SS", UTC) as a Date.
+function parseSqliteTimestamp(value) {
+  return new Date(value.replace(' ', 'T') + 'Z')
 }
 
 // Days remaining until a "YYYY-MM-DD" test date (negative if it's passed),
@@ -24,29 +46,45 @@ export function daysUntilTest(testDate, today = new Date()) {
 
 function reviewedToday(note, today) {
   if (!note.last_reviewed_at) return false
-  const reviewed = new Date(note.last_reviewed_at.replace(' ', 'T') + 'Z')
-  return daysBetween(today, reviewed) === 0
+  return daysBetween(today, parseSqliteTimestamp(note.last_reviewed_at)) === 0
 }
 
-// Lower score first — notes doing worse on their last quiz are prioritized.
-// A note with no quiz attempt yet is treated as worst-case, so it surfaces
-// too rather than being silently skipped.
-function scoreRatio(note) {
-  if (!Number.isInteger(note.last_quiz_total) || note.last_quiz_total === 0) return 0
-  return note.last_quiz_correct / note.last_quiz_total
+function reviewIntervalDays(mastery) {
+  if (mastery === null) return NEVER_STUDIED_INTERVAL_DAYS
+  if (mastery < WEAK_MASTERY_THRESHOLD) return WEAK_INTERVAL_DAYS
+  if (mastery < MEDIUM_MASTERY_THRESHOLD) return MEDIUM_INTERVAL_DAYS
+  return STRONG_INTERVAL_DAYS
+}
+
+function isDueByMastery(note, today) {
+  if (!note.last_reviewed_at) return true
+  const daysSinceReviewed = daysBetween(today, parseSqliteTimestamp(note.last_reviewed_at))
+  return daysSinceReviewed >= reviewIntervalDays(computeMastery(note))
+}
+
+// Lower mastery first — notes you know least surface first. Never-studied
+// notes (mastery === null) sort ahead of any real percentage, since they're
+// the most urgent.
+function sortWeight(note) {
+  const mastery = computeMastery(note)
+  return mastery === null ? -1 : mastery
 }
 
 // Returns the subset of `notes` that should be reviewed today, weakest
-// (lowest last quiz score) first. Only considers notes with a test date —
-// this is deliberately a "test prep" plan, not a general recency reminder.
+// first — either due at a test-date checkpoint, or due by the mastery-based
+// interval for notes with no test date. Skips anything already reviewed
+// today and anything with no content yet (nothing to review).
 export function computeTodaysReview(notes, today = new Date()) {
   return notes
-    .filter((note) => note.test_date)
+    .filter((note) => note.content && note.content.trim())
+    .filter((note) => !reviewedToday(note, today))
     .filter((note) => {
-      const remaining = daysUntilTest(note.test_date, today)
-      return CHECKPOINT_DAYS_BEFORE_TEST.includes(remaining) && !reviewedToday(note, today)
+      if (note.test_date) {
+        return CHECKPOINT_DAYS_BEFORE_TEST.includes(daysUntilTest(note.test_date, today))
+      }
+      return isDueByMastery(note, today)
     })
-    .sort((a, b) => scoreRatio(a) - scoreRatio(b))
+    .sort((a, b) => sortWeight(a) - sortWeight(b))
 }
 
 // "še 5 dni" style countdown label for a Domov card, or null once the test
