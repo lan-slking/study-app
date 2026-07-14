@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
 import { daysUntilTest, formatDaysUntilTest } from './reviewPlan.js'
+import { downloadTextFile, slugifyFilename, buildFlashcardsCsv } from './downloadFile.js'
 
 const MODE_LABELS = { full: 'Celotni zapiski', summary: 'Povzetek' }
 
@@ -11,9 +12,40 @@ const MODE_LABELS = { full: 'Celotni zapiski', summary: 'Povzetek' }
 // as the two things you'd actually want to do next, pinned to the bottom.
 function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onOpenDopolnjevanje }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
+  const [isExportingCsv, setIsExportingCsv] = useState(false)
+  const [exportError, setExportError] = useState(null)
   const subject = subjectMeta(note.subject)
   const hasContent = Boolean(note.content.trim())
   const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
+
+  function handleExportMarkdown() {
+    downloadTextFile(`${slugifyFilename(note.title)}.md`, note.content, 'text/markdown;charset=utf-8')
+    setIsExportMenuOpen(false)
+  }
+
+  async function handleExportFlashcardsCsv() {
+    setIsExportingCsv(true)
+    setExportError(null)
+    try {
+      const response = await fetch(`/api/notes/${note.id}/flashcards`, { method: 'POST' })
+      let data
+      try {
+        data = await response.json()
+      } catch {
+        throw new Error('Strežnika ni bilo mogoče doseči. Preveri, ali backend teče.')
+      }
+      if (!response.ok) {
+        throw new Error(data.error || 'Kartončkov ni bilo mogoče ustvariti za izvoz.')
+      }
+      downloadTextFile(`${slugifyFilename(note.title)}-kartoncki.csv`, buildFlashcardsCsv(data.cards), 'text/csv;charset=utf-8')
+      setIsExportMenuOpen(false)
+    } catch (err) {
+      setExportError(err.message || 'Izvoz ni uspel. Poskusi znova.')
+    } finally {
+      setIsExportingCsv(false)
+    }
+  }
 
   return (
     <main className="zapiski">
@@ -22,14 +54,44 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
           <button type="button" className="icon-button tap" onClick={onBack} aria-label="Nazaj">
             ←
           </button>
-          <button
-            type="button"
-            className="icon-button tap"
-            onClick={() => setIsEditing((v) => !v)}
-            aria-label={isEditing ? 'Končaj urejanje' : 'Uredi'}
-          >
-            {isEditing ? '✓' : '✏️'}
-          </button>
+
+          <div className="zapiski-topbar-actions">
+            <div className="export-menu-wrap">
+              <button
+                type="button"
+                className="icon-button tap"
+                onClick={() => {
+                  setIsExportMenuOpen((v) => !v)
+                  setExportError(null)
+                }}
+                disabled={!hasContent}
+                aria-label="Izvozi"
+              >
+                ⬇️
+              </button>
+
+              {isExportMenuOpen && (
+                <div className="export-menu">
+                  <button type="button" className="export-menu-item tap" onClick={handleExportFlashcardsCsv} disabled={isExportingCsv}>
+                    📇 {isExportingCsv ? 'Pripravljam ...' : 'Kartončki (CSV)'}
+                  </button>
+                  <button type="button" className="export-menu-item tap" onClick={handleExportMarkdown}>
+                    📝 Zapiski (Markdown)
+                  </button>
+                  {exportError && <p className="export-menu-error">{exportError}</p>}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="icon-button tap"
+              onClick={() => setIsEditing((v) => !v)}
+              aria-label={isEditing ? 'Končaj urejanje' : 'Uredi'}
+            >
+              {isEditing ? '✓' : '✏️'}
+            </button>
+          </div>
         </div>
 
         <div className="zapiski-header anim-slide-up">
