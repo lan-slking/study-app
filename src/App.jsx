@@ -4,6 +4,7 @@ import NovaSnov from './NovaSnov.jsx'
 import Zapiski from './Zapiski.jsx'
 import Quiz from './Quiz.jsx'
 import Flashcards from './Flashcards.jsx'
+import Dopolnjevanje from './Dopolnjevanje.jsx'
 import { subjectMeta } from './subjects.js'
 import './App.css'
 
@@ -16,7 +17,7 @@ function App() {
   const [notes, setNotes] = useState([])
   const [selectedId, setSelectedId] = useState(null)
 
-  // 'home' | 'wizard' | 'note' | 'quiz' | 'flashcards'
+  // 'home' | 'wizard' | 'note' | 'quiz' | 'flashcards' | 'dopolnjevanje'
   const [view, setView] = useState('home')
 
   // Loading/error state for the initial fetch, so we can show something
@@ -183,6 +184,7 @@ function App() {
           onBack={handleBackToHome}
           onOpenQuiz={() => setView('quiz')}
           onOpenFlashcards={() => setView('flashcards')}
+          onOpenDopolnjevanje={() => setView('dopolnjevanje')}
         />
       )}
 
@@ -196,6 +198,14 @@ function App() {
       )}
 
       {view === 'flashcards' && selectedNote && <Flashcards note={selectedNote} onClose={() => setView('note')} />}
+
+      {view === 'dopolnjevanje' && selectedNote && (
+        <Dopolnjevanje
+          note={selectedNote}
+          subjectColor={subjectMeta(selectedNote.subject).color}
+          onClose={() => setView('note')}
+        />
+      )}
 
       {view === 'home' && (
         <Home

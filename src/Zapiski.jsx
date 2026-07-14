@@ -8,7 +8,7 @@ const MODE_LABELS = { full: 'Celotni zapiski', summary: 'Povzetek' }
 // Zapiski is the main "look at your notes" screen: rendered Markdown as the
 // primary content, with editing tucked behind a pencil icon and Kviz/Kartice
 // as the two things you'd actually want to do next, pinned to the bottom.
-function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards }) {
+function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onOpenDopolnjevanje }) {
   const [isEditing, setIsEditing] = useState(false)
   const subject = subjectMeta(note.subject)
   const hasContent = Boolean(note.content.trim())
@@ -94,6 +94,14 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards }) {
             disabled={!hasContent}
           >
             🃏 Kartice
+          </button>
+          <button
+            type="button"
+            className="action-button action-button-secondary tap"
+            onClick={onOpenDopolnjevanje}
+            disabled={!hasContent}
+          >
+            ✍️ Dopolni
           </button>
         </div>
       </div>

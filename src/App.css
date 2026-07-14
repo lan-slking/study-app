@@ -198,7 +198,8 @@
 .home,
 .wizard,
 .quiz-screen,
-.kartice-screen {
+.kartice-screen,
+.dopolnjevanje-screen {
   flex: 1;
   overflow-y: auto;
   width: 100%;
@@ -1106,16 +1107,20 @@
 .action-button {
   cursor: pointer;
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   border: none;
   border-radius: var(--radius);
-  padding: 1rem;
+  padding: 0.9rem 0.4rem;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .action-button-primary {
@@ -1174,6 +1179,22 @@
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1.3;
+}
+
+.fill-blank-sentence {
+  margin: 0.5rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.fill-blank-gap {
+  display: inline-block;
+  min-width: 3.5rem;
+  padding: 0 0.2rem;
+  border-bottom: 2px solid var(--primary);
+  color: var(--primary);
+  text-align: center;
 }
 
 .quiz-options {
@@ -1410,7 +1431,8 @@
   .wizard,
   .zapiski-main,
   .quiz-screen,
-  .kartice-screen {
+  .kartice-screen,
+  .dopolnjevanje-screen {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
   }
@@ -1438,7 +1460,8 @@
 
   .wizard,
   .quiz-screen,
-  .kartice-screen {
+  .kartice-screen,
+  .dopolnjevanje-screen {
     max-width: 600px;
   }
 
@@ -1526,13 +1549,17 @@
   .zapiski-actionbar-inner .action-button {
     flex: none;
     width: 100%;
+    font-size: 1rem;
+    padding: 1rem;
+    white-space: normal;
   }
 
   /* Nova snov & Kviz: a centered card instead of a full-height, full-width
      column — these are focused, transient interactions, not a page you
      scroll through, so they no longer need to stretch to the viewport. */
   .wizard,
-  .quiz-screen {
+  .quiz-screen,
+  .dopolnjevanje-screen {
     flex: none;
     align-self: center;
     width: 100%;
@@ -1545,7 +1572,8 @@
   }
 
   .wizard .fixed-footer,
-  .quiz-screen .fixed-footer {
+  .quiz-screen .fixed-footer,
+  .dopolnjevanje-screen .fixed-footer {
     position: static;
     max-width: none;
     margin: 1.5rem 0 0;
@@ -1566,7 +1594,8 @@
   }
 
   /* Larger typography for the more focused desktop card layouts. */
-  .quiz-question {
+  .quiz-question,
+  .fill-blank-sentence {
     font-size: 1.75rem;
   }
 
