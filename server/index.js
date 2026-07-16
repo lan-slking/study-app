@@ -5,7 +5,7 @@ import cors from "cors";
 import multer from "multer";
 import { GoogleGenAI } from "@google/genai";
 import {
-  initDb,
+  databaseForRequest,
   getAllNotes,
   getNoteById,
   createNote,
@@ -15,14 +15,8 @@ import {
   invalidateGeneratedContent,
   logActivity,
   getStreak,
-  getNoteByShareToken,
-  setShareToken,
 } from "./db.js";
 import { generateValidatedJson, describeGeminiError } from "./geminiJson.js";
-
-// Node's ES modules support top-level await, so we can wait for the database
-// to be ready before the server starts accepting requests.
-await initDb();
 
 const app = express();
 // Named SERVER_PORT rather than PORT — some tools/OSes set a machine-level PORT
@@ -54,34 +48,49 @@ const upload = multer({
 app.use(cors());
 app.use(express.json());
 
+async function requireAuth(req, res, next) {
+  try {
+    const database = await databaseForRequest(req.headers.authorization);
+    if (!database) {
+      return res.status(401).json({ error: "Za nadaljevanje se prijavi." });
+    }
+    req.db = database.client;
+    req.user = database.user;
+    return next();
+  } catch (err) {
+    console.error("Authentication error:", err);
+    return res.status(401).json({ error: "Prijave ni bilo mogoče preveriti." });
+  }
+}
+
 // --- Notes CRUD ---
 // Backed by server/data.sqlite (see db.js). This is what makes notes survive
 // a page refresh or server restart — the frontend no longer keeps the only
 // copy of a note in memory.
 
-app.get("/api/notes", (req, res) => {
-  res.json(getAllNotes());
+app.get("/api/notes", requireAuth, async (req, res) => {
+  res.json(await getAllNotes(req.db));
 });
 
-app.post("/api/notes", (req, res) => {
+app.post("/api/notes", requireAuth, async (req, res) => {
   const title = req.body.title ?? "";
   const content = req.body.content ?? "";
   const subject = req.body.subject ?? "";
   const mode = req.body.mode ?? "";
   const testDate = req.body.testDate ?? null;
-  const note = createNote({ title, content, subject, mode, testDate });
+  const note = await createNote(req.db, { title, content, subject, mode, testDate });
+  // Generate every study mode in the background. Saving the note stays
+  // immediate, while the cached content is prepared for the student.
+  scheduleRegeneration(req.db, note.id, 0);
   res.status(201).json(note);
 });
 
-app.put("/api/notes/:id", (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: "Neveljaven ID zapiska." });
-  }
-
-  const before = getNoteById(id);
+app.put("/api/notes/:id", requireAuth, async (req, res) => {
+  const id = req.params.id;
+  const before = await getNoteById(req.db, id);
+  if (!before) return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
   const { title, content, subject, testDate } = req.body;
-  let note = updateNote(id, { title, content, subject, testDate });
+  let note = await updateNote(req.db, id, { title, content, subject, testDate });
 
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
@@ -92,21 +101,16 @@ app.put("/api/notes/:id", (req, res) => {
   // must be regenerated, not just left stale. Re-fetch afterward so the
   // response reflects the invalidation instead of the pre-invalidation `note`.
   if (content !== undefined && content !== before.content) {
-    invalidateGeneratedContent(id);
-    scheduleRegeneration(id);
-    note = getNoteById(id);
+    await invalidateGeneratedContent(req.db, id);
+    scheduleRegeneration(req.db, id);
+    note = await getNoteById(req.db, id);
   }
 
   res.json(note);
 });
 
-app.delete("/api/notes/:id", (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: "Neveljaven ID zapiska." });
-  }
-
-  deleteNote(id);
+app.delete("/api/notes/:id", requireAuth, async (req, res) => {
+  await deleteNote(req.db, req.params.id);
   res.status(204).end();
 });
 
@@ -115,12 +119,9 @@ app.delete("/api/notes/:id", (req, res) => {
 // by the frontend whenever a Kviz/Kartice/Dopolnjevanje session finishes.
 const ACTIVITY_TYPES = new Set(["quiz", "flashcards", "fill_blank"]);
 
-app.post("/api/notes/:id/activity", (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: "Neveljaven ID zapiska." });
-  }
-  if (!getNoteById(id)) {
+app.post("/api/notes/:id/activity", requireAuth, async (req, res) => {
+  const id = req.params.id;
+  if (!await getNoteById(req.db, id)) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
   }
 
@@ -129,12 +130,12 @@ app.post("/api/notes/:id/activity", (req, res) => {
     return res.status(400).json({ error: "Neveljavna vrsta dejavnosti." });
   }
 
-  logActivity(id, { type, correct, total });
-  res.status(201).json({ streak: getStreak() });
+  await logActivity(req.db, id, { type, correct, total });
+  res.status(201).json({ streak: await getStreak(req.db) });
 });
 
-app.get("/api/streak", (req, res) => {
-  res.json({ streak: getStreak() });
+app.get("/api/streak", requireAuth, async (req, res) => {
+  res.json({ streak: await getStreak(req.db) });
 });
 
 // --- Sharing ---
@@ -145,17 +146,23 @@ app.get("/api/streak", (req, res) => {
 // warm) but never logged as the owner's activity or quiz score — an
 // anonymous visitor's attempt isn't the owner's result.
 
-app.post("/api/notes/:id/share", (req, res) => {
-  const id = Number(req.params.id);
-  const note = Number.isInteger(id) ? getNoteById(id) : null;
+app.post("/api/notes/:id/share", requireAuth, async (req, res) => {
+  const id = req.params.id;
+  const note = await getNoteById(req.db, id);
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
   }
 
   const token = note.share_token || crypto.randomBytes(12).toString("hex");
-  if (!note.share_token) setShareToken(id, token);
+  if (!note.share_token) await updateGeneratedContent(req.db, id, { share_token: token });
 
   res.json({ shareToken: token });
+});
+
+// Public links need a dedicated, token-scoped database function. Until that
+// is added, refuse them rather than weakening row-level security.
+app.use("/api/shared", (_req, res) => {
+  res.status(410).json({ error: "Deljene povezave so med varnostno posodobitvijo začasno nedostopne." });
 });
 
 app.get("/api/shared/:token", (req, res) => {
@@ -237,7 +244,7 @@ ${MARKDOWN_FORMAT_RULES}
 Return only the resulting summary as Markdown (no extra commentary).`,
 };
 
-app.post("/api/process-image", upload.single("image"), async (req, res) => {
+app.post("/api/process-image", requireAuth, upload.single("image"), async (req, res) => {
   // Fail fast with a clear message instead of letting the Gemini call blow up
   // with a less obvious error further down.
   if (!GEMINI_API_KEY) {
@@ -457,17 +464,17 @@ Return ONLY valid JSON matching exactly this shape, with no other text:
 // returns it — the single place "check cache, else ask Gemini" happens, so
 // pre-generation, on-demand generation, and post-edit regeneration all agree
 // on what "ready" means.
-async function getOrGenerateStudyContent(note, field, { prompt, validate }) {
+async function getOrGenerateStudyContent(db, note, field, { prompt, validate }) {
   if (note[field]) {
     try {
-      return JSON.parse(note[field]);
+      return typeof note[field] === "string" ? JSON.parse(note[field]) : note[field];
     } catch {
       // Corrupt cache (shouldn't normally happen) — fall through and regenerate.
     }
   }
 
   const generated = await generateValidatedJson(ai, { model: GEMINI_MODEL, prompt, validate });
-  updateGeneratedContent(note.id, { [field]: JSON.stringify(generated) });
+  await updateGeneratedContent(db, note.id, { [field]: generated });
   return generated;
 }
 
@@ -481,21 +488,21 @@ async function getOrGenerateStudyContent(note, field, { prompt, validate }) {
 const REGENERATION_DEBOUNCE_MS = 4000;
 const regenerationTimers = new Map();
 
-function scheduleRegeneration(noteId) {
+function scheduleRegeneration(db, noteId, delay = REGENERATION_DEBOUNCE_MS) {
   const existing = regenerationTimers.get(noteId);
   if (existing) clearTimeout(existing);
 
   const timer = setTimeout(() => {
     regenerationTimers.delete(noteId);
-    regenerateStudyContent(noteId).catch((err) => {
+    regenerateStudyContent(db, noteId).catch((err) => {
       console.error(`Background regeneration failed for note ${noteId}:`, err);
     });
-  }, REGENERATION_DEBOUNCE_MS);
+  }, delay);
   regenerationTimers.set(noteId, timer);
 }
 
-async function regenerateStudyContent(noteId) {
-  const note = getNoteById(noteId);
+async function regenerateStudyContent(db, noteId) {
+  const note = await getNoteById(db, noteId);
   if (!note || !note.content.trim()) return;
 
   const [quiz, flashcards, fillBlank] = await Promise.allSettled([
@@ -513,21 +520,20 @@ async function regenerateStudyContent(noteId) {
   ]);
 
   const update = {};
-  if (quiz.status === "fulfilled") update.quiz_json = JSON.stringify(quiz.value);
-  if (flashcards.status === "fulfilled") update.flashcards_json = JSON.stringify(flashcards.value);
-  if (fillBlank.status === "fulfilled") update.fill_blank_json = JSON.stringify(fillBlank.value);
-  if (Object.keys(update).length > 0) updateGeneratedContent(noteId, update);
+  if (quiz.status === "fulfilled") update.quiz_json = quiz.value;
+  if (flashcards.status === "fulfilled") update.flashcards_json = flashcards.value;
+  if (fillBlank.status === "fulfilled") update.fill_blank_json = fillBlank.value;
+  if (Object.keys(update).length > 0) await updateGeneratedContent(db, noteId, update);
 }
 
-app.post("/api/notes/:id/quiz", async (req, res) => {
+app.post("/api/notes/:id/quiz", requireAuth, async (req, res) => {
   if (!GEMINI_API_KEY) {
     return res.status(500).json({
       error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
     });
   }
 
-  const id = Number(req.params.id);
-  const note = Number.isInteger(id) ? getNoteById(id) : null;
+  const note = await getNoteById(req.db, req.params.id);
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
   }
@@ -536,7 +542,7 @@ app.post("/api/notes/:id/quiz", async (req, res) => {
   }
 
   try {
-    const quiz = await getOrGenerateStudyContent(note, "quiz_json", {
+    const quiz = await getOrGenerateStudyContent(req.db, note, "quiz_json", {
       prompt: buildQuizPrompt(note.content),
       validate: validateQuiz,
     });
@@ -548,15 +554,14 @@ app.post("/api/notes/:id/quiz", async (req, res) => {
   }
 });
 
-app.post("/api/notes/:id/flashcards", async (req, res) => {
+app.post("/api/notes/:id/flashcards", requireAuth, async (req, res) => {
   if (!GEMINI_API_KEY) {
     return res.status(500).json({
       error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
     });
   }
 
-  const id = Number(req.params.id);
-  const note = Number.isInteger(id) ? getNoteById(id) : null;
+  const note = await getNoteById(req.db, req.params.id);
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
   }
@@ -565,7 +570,7 @@ app.post("/api/notes/:id/flashcards", async (req, res) => {
   }
 
   try {
-    const flashcards = await getOrGenerateStudyContent(note, "flashcards_json", {
+    const flashcards = await getOrGenerateStudyContent(req.db, note, "flashcards_json", {
       prompt: buildFlashcardsPrompt(note.content),
       validate: validateFlashcards,
     });
@@ -577,15 +582,14 @@ app.post("/api/notes/:id/flashcards", async (req, res) => {
   }
 });
 
-app.post("/api/notes/:id/fill-blank", async (req, res) => {
+app.post("/api/notes/:id/fill-blank", requireAuth, async (req, res) => {
   if (!GEMINI_API_KEY) {
     return res.status(500).json({
       error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",
     });
   }
 
-  const id = Number(req.params.id);
-  const note = Number.isInteger(id) ? getNoteById(id) : null;
+  const note = await getNoteById(req.db, req.params.id);
   if (!note) {
     return res.status(404).json({ error: "Zapiska ni bilo mogoče najti." });
   }
@@ -594,7 +598,7 @@ app.post("/api/notes/:id/fill-blank", async (req, res) => {
   }
 
   try {
-    const fillBlank = await getOrGenerateStudyContent(note, "fill_blank_json", {
+    const fillBlank = await getOrGenerateStudyContent(req.db, note, "fill_blank_json", {
       prompt: buildFillBlankPrompt(note.content),
       validate: validateFillBlank,
     });
@@ -606,7 +610,7 @@ app.post("/api/notes/:id/fill-blank", async (req, res) => {
   }
 });
 
-app.post("/api/grade-answer", async (req, res) => {
+app.post("/api/grade-answer", requireAuth, async (req, res) => {
   if (!GEMINI_API_KEY) {
     return res.status(500).json({
       error: "Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v server/.env in znova zaženi strežnik.",

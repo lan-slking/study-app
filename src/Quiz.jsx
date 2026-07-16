@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import ProgressRing from './ProgressRing.jsx'
 import Confetti from './Confetti.jsx'
+import { apiFetch } from './apiFetch.js'
 
 const CONFETTI_DURATION_MS = 2600
 
@@ -43,7 +44,7 @@ function Quiz({ quizEndpoint, gradeEndpoint = '/api/grade-answer', subjectColor,
     setStatus('loading')
     setLoadError(null)
     try {
-      const response = await fetch(quizEndpoint, { method: 'POST' })
+      const response = await apiFetch(quizEndpoint, { method: 'POST' })
       let data
       try {
         data = await response.json()
@@ -77,7 +78,7 @@ function Quiz({ quizEndpoint, gradeEndpoint = '/api/grade-answer', subjectColor,
     setIsGrading(true)
     setGradeError(null)
     try {
-      const response = await fetch(gradeEndpoint, {
+      const response = await apiFetch(gradeEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

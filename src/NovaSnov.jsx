@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { SUBJECTS, subjectMeta, customSubjectsInUse } from './subjects.js'
 import { compressImage } from './compressImage.js'
+import { apiFetch } from './apiFetch.js'
 
 const TOTAL_STEPS = 4
 const PAGE_SEPARATOR = '\n\n---\n\n'
@@ -125,7 +126,7 @@ function NovaSnov({ notes, onCreated, onCancel }) {
         formData.append('image', imageBlob, photo.file.name)
         formData.append('mode', mode)
 
-        const response = await fetch('/api/process-image', { method: 'POST', body: formData })
+        const response = await apiFetch('/api/process-image', { method: 'POST', body: formData })
         let data
         try {
           data = await response.json()
@@ -140,7 +141,7 @@ function NovaSnov({ notes, onCreated, onCancel }) {
 
       const content = pageContents.join(PAGE_SEPARATOR)
 
-      const createResponse = await fetch('/api/notes', {
+      const createResponse = await apiFetch('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -161,18 +162,10 @@ function NovaSnov({ notes, onCreated, onCancel }) {
         throw new Error(note.error || 'Snovi ni bilo mogoče shraniti.')
       }
 
-      // Best-effort: warm the quiz/flashcards/fill-blank cache right away so
+      // Study content now generates in the background immediately after save.
       // opening them from Zapiski feels instant. Never blocks navigation —
       // if one (or all) fail, those study modes just fall back to generating
       // on demand when opened, same as before this existed.
-      setProcessingStage('pregenerating')
-      setMessageIndex(0)
-      await Promise.allSettled([
-        fetch(`/api/notes/${note.id}/quiz`, { method: 'POST' }),
-        fetch(`/api/notes/${note.id}/flashcards`, { method: 'POST' }),
-        fetch(`/api/notes/${note.id}/fill-blank`, { method: 'POST' }),
-      ])
-
       onCreated(note)
     } catch (err) {
       setErrorMessage(err.message || 'Nekaj je šlo narobe. Poskusi znova.')

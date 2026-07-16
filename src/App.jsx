@@ -7,6 +7,10 @@ import Quiz from './Quiz.jsx'
 import Flashcards from './Flashcards.jsx'
 import Dopolnjevanje from './Dopolnjevanje.jsx'
 import { subjectMeta } from './subjects.js'
+import AuthScreen from './AuthScreen.jsx'
+import { apiFetch } from './apiFetch.js'
+import { restoreSessionFromUrl } from './auth.js'
+import { avatarUrl, loadProfile, uploadAvatar } from './profile.js'
 import './App.css'
 
 // How long to wait after the last keystroke before saving to the backend.
@@ -36,9 +40,16 @@ function App() {
   // All notes live here, loaded from the backend on startup (see the effect below).
   const [notes, setNotes] = useState([])
   const [selectedId, setSelectedId] = useState(null)
+  const [session, setSession] = useState(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const [profile, setProfile] = useState(null)
 
   // 'home' | 'wizard' | 'note' | 'quiz' | 'flashcards' | 'dopolnjevanje'
   const [view, setView] = useState('home')
+
+  // Keep study modes mounted after first opening them, per note. This lets a
+  // student move between modes and resume exactly where they stopped.
+  const [openedStudyModes, setOpenedStudyModes] = useState({})
 
   // Loading/error state for the initial fetch, so we can show something
   // sensible instead of a blank screen while notes are loading.
@@ -56,13 +67,23 @@ function App() {
 
   const selectedNote = notes.find((note) => note.id === selectedId) ?? null
 
+  useEffect(() => {
+    setSession(restoreSessionFromUrl())
+    setIsAuthLoading(false)
+  }, [])
+
   // Load all notes from the backend once, when the app first mounts.
   useEffect(() => {
+    if (!session) {
+      setIsLoading(false)
+      return undefined
+    }
+    setIsLoading(true)
     let cancelled = false
 
     async function loadNotes() {
       try {
-        const response = await fetch('/api/notes')
+        const response = await apiFetch('/api/notes')
         if (!response.ok) {
           throw new Error('Strežnik ni mogel naložiti zapiskov.')
         }
@@ -72,7 +93,7 @@ function App() {
 
         // Best-effort — a failed streak fetch shouldn't block the app from
         // loading notes, it just shows 0 until the next successful load.
-        fetch('/api/streak')
+        apiFetch('/api/streak')
           .then((r) => r.json())
           .then((s) => {
             if (!cancelled) setStreak(s.streak ?? 0)
@@ -93,12 +114,29 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [session])
+
+  useEffect(() => {
+    if (!session) {
+      setProfile(null)
+      return
+    }
+    loadProfile().then((data) => data && setProfile({ ...data, avatar_url: avatarUrl(data.avatar_path) })).catch(console.error)
+  }, [session])
+
+  async function handleUploadAvatar(file) {
+    try {
+      const updated = await uploadAvatar(file)
+      setProfile({ ...updated, avatar_url: `${avatarUrl(updated.avatar_path)}?v=${Date.now()}` })
+    } catch (error) {
+      window.alert(error.message || 'Profilne slike ni bilo mogoče naložiti.')
+    }
+  }
 
   // Actually send a note's current title/content/test date to the backend.
   async function saveNoteToServer(id, note) {
     try {
-      await fetch(`/api/notes/${id}`, {
+      await apiFetch(`/api/notes/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: note.title, content: note.content, testDate: note.test_date ?? null }),
@@ -135,6 +173,19 @@ function App() {
   function handleSelectNote(id) {
     setSelectedId(id)
     setView('note')
+  }
+
+  function openStudyMode(mode) {
+    if (selectedId === null) return
+    setOpenedStudyModes((previous) => ({
+      ...previous,
+      [selectedId]: { ...previous[selectedId], [mode]: true },
+    }))
+    setView(mode)
+  }
+
+  function hasOpenedStudyMode(mode) {
+    return Boolean(selectedId !== null && openedStudyModes[selectedId]?.[mode])
   }
 
   function handleBackToHome() {
@@ -177,7 +228,7 @@ function App() {
       setSelectedId(null)
     }
 
-    fetch(`/api/notes/${id}`, { method: 'DELETE' }).catch((err) => {
+    apiFetch(`/api/notes/${id}`, { method: 'DELETE' }).catch((err) => {
       console.error('Failed to delete note:', err)
     })
   }
@@ -223,7 +274,7 @@ function App() {
         return { ...note, ...scoreUpdate, last_reviewed_at: sqliteTimestampNow() }
       }),
     )
-    fetch(`/api/notes/${noteId}/activity`, {
+    apiFetch(`/api/notes/${noteId}/activity`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, correct, total }),
@@ -235,6 +286,14 @@ function App() {
       .catch((err) => {
         console.error('Failed to log activity:', err)
       })
+  }
+
+  if (isAuthLoading) {
+    return <div className="app-status">Nalagam račun ...</div>
+  }
+
+  if (!session) {
+    return <AuthScreen onAuthenticated={setSession} />
   }
 
   if (isLoading) {
@@ -250,6 +309,8 @@ function App() {
       <Sidebar
         notes={notes}
         streak={streak}
+        profile={profile}
+        onUploadAvatar={handleUploadAvatar}
         currentView={view}
         subjectFilter={subjectFilter}
         onGoHome={handleGoHome}
@@ -267,32 +328,45 @@ function App() {
             note={selectedNote}
             onUpdateNote={handleUpdateNote}
             onBack={handleBackToHome}
-            onOpenQuiz={() => setView('quiz')}
-            onOpenFlashcards={() => setView('flashcards')}
-            onOpenDopolnjevanje={() => setView('dopolnjevanje')}
+            onOpenQuiz={() => openStudyMode('quiz')}
+            onOpenFlashcards={() => openStudyMode('flashcards')}
+            onOpenDopolnjevanje={() => openStudyMode('dopolnjevanje')}
           />
         )}
 
-        {view === 'quiz' && selectedNote && (
-          <Quiz
-            quizEndpoint={`/api/notes/${selectedNote.id}/quiz`}
-            subjectColor={subjectMeta(selectedNote.subject).color}
-            onClose={() => setView('note')}
-            onFinished={handleQuizFinished}
-          />
+        {selectedNote && hasOpenedStudyMode('quiz') && (
+          <div className="study-mode-shell" hidden={view !== 'quiz'}>
+            <Quiz
+              key={`${selectedNote.id}-quiz`}
+              quizEndpoint={`/api/notes/${selectedNote.id}/quiz`}
+              subjectColor={subjectMeta(selectedNote.subject).color}
+              onClose={() => setView('note')}
+              onFinished={handleQuizFinished}
+            />
+          </div>
         )}
 
-        {view === 'flashcards' && selectedNote && (
-          <Flashcards note={selectedNote} onClose={() => setView('note')} onFinished={handleFlashcardsFinished} />
+        {selectedNote && hasOpenedStudyMode('flashcards') && (
+          <div className="study-mode-shell" hidden={view !== 'flashcards'}>
+            <Flashcards
+              key={`${selectedNote.id}-flashcards`}
+              note={selectedNote}
+              onClose={() => setView('note')}
+              onFinished={handleFlashcardsFinished}
+            />
+          </div>
         )}
 
-        {view === 'dopolnjevanje' && selectedNote && (
-          <Dopolnjevanje
-            note={selectedNote}
-            subjectColor={subjectMeta(selectedNote.subject).color}
-            onClose={() => setView('note')}
-            onFinished={handleDopolnjevanjeFinished}
-          />
+        {selectedNote && hasOpenedStudyMode('dopolnjevanje') && (
+          <div className="study-mode-shell" hidden={view !== 'dopolnjevanje'}>
+            <Dopolnjevanje
+              key={`${selectedNote.id}-dopolnjevanje`}
+              note={selectedNote}
+              subjectColor={subjectMeta(selectedNote.subject).color}
+              onClose={() => setView('note')}
+              onFinished={handleDopolnjevanjeFinished}
+            />
+          </div>
         )}
 
         {view === 'home' && (

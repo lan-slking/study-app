@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Confetti from './Confetti.jsx'
+import { apiFetch } from './apiFetch.js'
 
 // Flashcards shows Gemini-generated term/definition pairs for one note as
 // flippable cards. Cards marked "ne znam" (don't know) come back in the next
@@ -26,7 +27,7 @@ function Flashcards({ note, onClose, onFinished }) {
     setStatus('loading')
     setLoadError(null)
     try {
-      const response = await fetch(`/api/notes/${note.id}/flashcards`, { method: 'POST' })
+      const response = await apiFetch(`/api/notes/${note.id}/flashcards`, { method: 'POST' })
       let data
       try {
         data = await response.json()

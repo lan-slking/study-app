@@ -202,6 +202,13 @@
   min-width: 0;
 }
 
+/* Keeps an opened study session mounted without becoming an extra flex item.
+   That way the quiz, flashcards, and fill-in screens retain their original
+   centered desktop layout while their state survives mode switching. */
+.study-mode-shell:not([hidden]) {
+  display: contents;
+}
+
 /* --- Desktop sidebar ---
    Persistent left nav (logo, Domov, Nova snov, streak, subject filter).
    Hidden below 1024px — mobile keeps Domov itself as the hub, no separate
@@ -215,6 +222,15 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+.app-sidebar-profile { display: flex; align-items: center; gap: 0.65rem; }
+.app-sidebar-profile > div { min-width: 0; display: grid; gap: 0.15rem; }
+.app-sidebar-profile strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-sidebar-profile span { color: var(--muted-foreground); font-size: 0.72rem; }
+.profile-avatar { cursor: pointer; position: relative; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; overflow: hidden; border-radius: 50%; background: var(--gradient-primary); color: var(--primary-foreground); font-weight: 800; }
+.profile-avatar:hover::after { content: '↥'; position: absolute; inset: 0; display: grid; place-items: center; background: oklch(10% 0 0 / 0.45); color: white; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 
 .app-sidebar-link {
   cursor: pointer;
@@ -343,6 +359,51 @@
 .app-status-error button:active {
   transform: scale(0.96);
 }
+
+/* --- Authentication --- */
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background-color: var(--background);
+  background-image: var(--gradient-mesh);
+}
+
+.auth-card {
+  width: min(100%, 26rem);
+  padding: 2.25rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--card);
+  box-shadow: var(--shadow-glow-lg);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+}
+
+.auth-brand span {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+}
+
+.auth-card h1 { margin: 1.75rem 0 0.5rem; font-size: 1.8rem; }
+.auth-card > p { margin: 0; color: var(--muted-foreground); }
+.auth-form { display: grid; gap: 1rem; margin-top: 1.75rem; }
+.auth-form label { display: grid; gap: 0.45rem; font-size: 0.9rem; font-weight: 700; }
+.auth-form input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--input); color: var(--foreground); padding: 0.8rem; font: inherit; }
+.auth-message { margin: 0; font-size: 0.9rem; }
+.auth-message.error { color: var(--destructive); }
+.auth-message.success { color: var(--primary); }
+.auth-switch { width: 100%; margin-top: 1.25rem; border: 0; background: none; color: var(--primary); font: inherit; font-weight: 700; cursor: pointer; }
 
 /* --- Shared screen shell ---
    On mobile, every top-level screen is a single, narrow (phone-width)
@@ -1887,13 +1948,20 @@
 
   /* Zapiski: a proper two-column reading layout — a comfortable-width
      column for the notes, with Kviz/Kartice as a sidebar instead of a
-     fixed mobile-style bottom bar. */
+     fixed mobile-style bottom bar. Unlike Home's centered, bounded
+     container, this one fills the available width (reading column left,
+     action bar pinned right) so wide monitors don't show a dead zone past
+     the action buttons — only the middle gap grows, which reads as
+     intentional breathing room instead of unused leftover space. */
   .zapiski {
-    max-width: 980px;
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
     flex-direction: row;
     align-items: flex-start;
+    justify-content: space-between;
     gap: 2.5rem;
-    padding-top: 3rem;
+    padding: 3rem 3rem 0;
   }
 
   .zapiski-main {

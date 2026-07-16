@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { apiFetch } from './apiFetch.js'
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
 import { daysUntilTest, formatDaysUntilTest } from './reviewPlan.js'
@@ -33,7 +34,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
     setIsExportingCsv(true)
     setExportError(null)
     try {
-      const response = await fetch(`/api/notes/${note.id}/flashcards`, { method: 'POST' })
+      const response = await apiFetch(`/api/notes/${note.id}/flashcards`, { method: 'POST' })
       let data
       try {
         data = await response.json()
@@ -60,7 +61,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
 
     setIsSharing(true)
     try {
-      const response = await fetch(`/api/notes/${note.id}/share`, { method: 'POST' })
+      const response = await apiFetch(`/api/notes/${note.id}/share`, { method: 'POST' })
       let data
       try {
         data = await response.json()
@@ -241,7 +242,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
           </button>
           <button
             type="button"
-            className="action-button action-button-secondary tap"
+            className="action-button action-button-primary tap"
             onClick={onOpenFlashcards}
             disabled={!hasContent}
           >
@@ -249,7 +250,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
           </button>
           <button
             type="button"
-            className="action-button action-button-secondary tap"
+            className="action-button action-button-primary tap"
             onClick={onOpenDopolnjevanje}
             disabled={!hasContent}
           >

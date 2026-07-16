@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import ProgressRing from './ProgressRing.jsx'
 import { isAnswerCorrect } from './answerMatching.js'
+import { apiFetch } from './apiFetch.js'
 
 // Dopolnjevanje (fill-in-the-blank) walks through Gemini-generated sentences
 // with a key term blanked out, one at a time — same instant-feedback and
@@ -27,7 +28,7 @@ function Dopolnjevanje({ note, subjectColor, onClose, onFinished }) {
     setStatus('loading')
     setLoadError(null)
     try {
-      const response = await fetch(`/api/notes/${note.id}/fill-blank`, { method: 'POST' })
+      const response = await apiFetch(`/api/notes/${note.id}/fill-blank`, { method: 'POST' })
       let data
       try {
         data = await response.json()

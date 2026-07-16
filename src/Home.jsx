@@ -35,7 +35,7 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
           <h1>
             Živjo! <span className="anim-float-slow">👋</span>
           </h1>
-          <p>Slikaj zapiske, dobi kviz.</p>
+          <p>Slikaj, ustvari zapiske in se nauči!</p>
         </div>
 
         <button
@@ -47,7 +47,7 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
           <span className="home-cta-icon">➕</span>
           <span className="home-cta-text">
             <span className="home-cta-title">Nova snov</span>
-            <span className="home-cta-subtitle">Slikaj in začni v 30 sekundah</span>
+            <span className="home-cta-subtitle">Slikaj in začni!</span>
           </span>
           <span className="home-cta-arrow">→</span>
         </button>

@@ -3,14 +3,17 @@ import { subjectsInUse } from './subjects.js'
 // Persistent left navigation — desktop only (hidden via CSS below 1024px;
 // mobile keeps Domov itself as the hub, per the redesign brief). Always
 // rendered alongside whatever screen is active, not just on Domov.
-function Sidebar({ notes, streak, currentView, subjectFilter, onGoHome, onAddNote, onFilterSubject }) {
+function Sidebar({ notes, streak, currentView, subjectFilter, profile, onUploadAvatar, onGoHome, onAddNote, onFilterSubject }) {
   const subjects = subjectsInUse(notes)
 
   return (
     <aside className="app-sidebar">
-      <div className="app-sidebar-brand">
-        <div className="home-logo">P</div>
-        <span className="home-wordmark">Piflar</span>
+      <div className="app-sidebar-profile">
+        <label className="profile-avatar" title="Spremeni profilno sliko">
+          {profile?.avatar_path ? <img src={profile.avatar_url} alt="Profilna slika" /> : <span>{profile?.username?.[0]?.toUpperCase() ?? 'P'}</span>}
+          <input type="file" accept="image/*" onChange={(event) => event.target.files?.[0] && onUploadAvatar(event.target.files[0])} />
+        </label>
+        <div><strong>{profile?.username ?? 'Uporabnik'}</strong><span>Uredi profilno sliko</span></div>
       </div>
 
       <button
