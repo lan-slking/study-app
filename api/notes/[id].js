@@ -2,10 +2,6 @@ import { authenticate } from '../../server/requireAuth.js'
 import { getNoteById, updateNote, deleteNote, invalidateGeneratedContent } from '../../server/db.js'
 
 export default async function handler(req, res) {
-  if (req.headers['x-debug-route'] === '1') {
-    return res.status(200).json({ url: req.url, method: req.method, query: req.query })
-  }
-
   const auth = await authenticate(req)
   if (!auth) return res.status(401).json({ error: 'Za nadaljevanje se prijavi.' })
 

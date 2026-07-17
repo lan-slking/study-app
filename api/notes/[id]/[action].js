@@ -47,10 +47,6 @@ const STUDY_MODES = {
 }
 
 export default async function handler(req, res) {
-  if (req.headers['x-debug-route'] === '1') {
-    return res.status(200).json({ url: req.url, method: req.method, query: req.query })
-  }
-
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Method not allowed' })
