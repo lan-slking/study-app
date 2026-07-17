@@ -1,14 +1,6 @@
 import crypto from 'crypto'
-import { authenticate } from '../../server/requireAuth.js'
-import {
-  getNoteById,
-  updateNote,
-  deleteNote,
-  invalidateGeneratedContent,
-  logActivity,
-  getStreak,
-  updateGeneratedContent,
-} from '../../server/db.js'
+import { authenticate } from '../../../server/requireAuth.js'
+import { getNoteById, logActivity, getStreak, updateGeneratedContent } from '../../../server/db.js'
 import {
   GEMINI_API_KEY,
   buildQuizPrompt,
@@ -18,19 +10,15 @@ import {
   buildFillBlankPrompt,
   validateFillBlank,
   getOrGenerateStudyContent,
-} from '../../server/studyContent.js'
-import { describeGeminiError } from '../../server/geminiJson.js'
+} from '../../../server/studyContent.js'
+import { describeGeminiError } from '../../../server/geminiJson.js'
 
-// Catch-all covering /api/notes/:id (PUT, DELETE) and
-// /api/notes/:id/:action (POST, action = activity/share/quiz/flashcards/
-// fill-blank) in ONE file. Previously this was split into a dynamic FILE
-// (api/notes/[id].js) and a dynamic FOLDER of the same name
-// (api/notes/[id]/[action].js) — having both at the same tree position is a
-// known source of routing ambiguity on Vercel (POST requests to the nested
-// path were being matched against the shallower [id].js route and rejected
-// with 405). A single catch-all removes the ambiguity entirely and also
-// keeps the function count well under Vercel Hobby's 12-per-deployment cap.
-
+// Covers POST /api/notes/:id/{activity,share,quiz,flashcards,fill-blank} in
+// one file, dispatching on the [action] segment. The dynamic folder here is
+// named [noteId] — deliberately different from the sibling dynamic file
+// api/notes/[id].js — after a same-named dynamic file + dynamic folder at
+// the same tree position caused Vercel to route 2-segment requests to the
+// shallower [id].js route instead (405 instead of reaching this handler).
 const ACTIVITY_TYPES = new Set(['quiz', 'flashcards', 'fill_blank'])
 
 const STUDY_MODES = {
@@ -62,14 +50,16 @@ export default async function handler(req, res) {
     return res.status(200).json({ url: req.url, method: req.method, query: req.query })
   }
 
-  const segments = Array.isArray(req.query.segments) ? req.query.segments : [req.query.segments].filter(Boolean)
-  const [id, action] = segments
-  if (!id) return res.status(404).json({ error: 'Ta pot ne obstaja.' })
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
 
   const auth = await authenticate(req)
   if (!auth) return res.status(401).json({ error: 'Za nadaljevanje se prijavi.' })
 
-  if (!action) return handleNote(req, res, auth, id)
+  const { noteId: id, action } = req.query
+
   if (action === 'activity') return handleActivity(req, res, auth, id)
   if (action === 'share') return handleShare(req, res, auth, id)
   if (STUDY_MODES[action]) return handleStudyMode(req, res, auth, id, STUDY_MODES[action])
@@ -77,43 +67,9 @@ export default async function handler(req, res) {
   return res.status(404).json({ error: 'Ta pot ne obstaja.' })
 }
 
-async function handleNote(req, res, auth, id) {
-  if (req.method === 'PUT') {
-    const before = await getNoteById(auth.db, id)
-    if (!before) return res.status(404).json({ error: 'Zapiska ni bilo mogoče najti.' })
-
-    const { title, content, subject, testDate } = req.body ?? {}
-    let note = await updateNote(auth.db, id, { title, content, subject, testDate })
-    if (!note) return res.status(404).json({ error: 'Zapiska ni bilo mogoče najti.' })
-
-    // The cached quiz/flashcards/fill-blank content was generated from the OLD
-    // content — once it actually changes, invalidate it. It regenerates lazily
-    // the next time the note's study modes are opened (see studyContent.js).
-    if (content !== undefined && content !== before.content) {
-      await invalidateGeneratedContent(auth.db, id)
-      note = await getNoteById(auth.db, id)
-    }
-
-    return res.json(note)
-  }
-
-  if (req.method === 'DELETE') {
-    await deleteNote(auth.db, id)
-    return res.status(204).end()
-  }
-
-  res.setHeader('Allow', 'PUT, DELETE')
-  return res.status(405).json({ error: 'Method not allowed' })
-}
-
 // Logs one completed study session (quiz / flashcards / fill_blank) — feeds
 // the Domov streak and the "reviewed today" check in the review plan.
 async function handleActivity(req, res, auth, id) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST')
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
   if (!(await getNoteById(auth.db, id))) {
     return res.status(404).json({ error: 'Zapiska ni bilo mogoče najti.' })
   }
@@ -128,13 +84,8 @@ async function handleActivity(req, res, auth, id) {
 }
 
 // A note's share link is stable once created (clicking "Deli" again returns
-// the same token, not a new one) and is read-only — see api/shared/[...slug].js.
+// the same token, not a new one) and is read-only — see api/shared/[token]/.
 async function handleShare(req, res, auth, id) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST')
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
   const note = await getNoteById(auth.db, id)
   if (!note) return res.status(404).json({ error: 'Zapiska ni bilo mogoče najti.' })
 
@@ -145,11 +96,6 @@ async function handleShare(req, res, auth, id) {
 }
 
 async function handleStudyMode(req, res, auth, id, mode) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST')
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
   if (!GEMINI_API_KEY) {
     return res.status(500).json({
       error: 'Strežnik nima nastavljenega ključa GEMINI_API_KEY. Dodaj ga v .env in znova zaženi strežnik.',
