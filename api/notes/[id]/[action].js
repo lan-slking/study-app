@@ -14,11 +14,12 @@ import {
 import { describeGeminiError } from '../../../server/geminiJson.js'
 
 // Covers POST /api/notes/:id/{activity,share,quiz,flashcards,fill-blank} in
-// one file, dispatching on the [action] segment. The dynamic folder here is
-// named [noteId] — deliberately different from the sibling dynamic file
-// api/notes/[id].js — after a same-named dynamic file + dynamic folder at
-// the same tree position caused Vercel to route 2-segment requests to the
-// shallower [id].js route instead (405 instead of reaching this handler).
+// one file, dispatching on the [action] segment. This dynamic folder MUST be
+// named [id], matching the sibling dynamic file api/notes/[id].js exactly —
+// Vercel's build rejects a dynamic file and a dynamic folder at the same tree
+// position when their parameter names differ ("conflicting paths"), but
+// accepts it when the names match (same convention as Next.js's
+// pages/blog.js + pages/blog/[slug].js).
 const ACTIVITY_TYPES = new Set(['quiz', 'flashcards', 'fill_blank'])
 
 const STUDY_MODES = {
@@ -58,7 +59,7 @@ export default async function handler(req, res) {
   const auth = await authenticate(req)
   if (!auth) return res.status(401).json({ error: 'Za nadaljevanje se prijavi.' })
 
-  const { noteId: id, action } = req.query
+  const { id, action } = req.query
 
   if (action === 'activity') return handleActivity(req, res, auth, id)
   if (action === 'share') return handleShare(req, res, auth, id)
