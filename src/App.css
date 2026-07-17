@@ -840,55 +840,6 @@
   flex-shrink: 0;
 }
 
-.review-section {
-  margin-top: 2.5rem;
-  padding: 1rem 1.5rem;
-  border-radius: var(--radius-lg);
-  background-color: color-mix(in oklab, var(--primary) 12%, var(--card));
-}
-
-.review-section-title {
-  margin: 0 0 1rem;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.review-card-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.review-card {
-  cursor: pointer;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: none;
-  border-radius: var(--radius);
-  background-color: var(--card);
-  padding: 0.5rem 1rem;
-  text-align: left;
-  color: var(--foreground);
-  font-family: inherit;
-}
-
-.review-card-emoji {
-  font-size: 1.1rem;
-}
-
-.review-card-title {
-  font-size: 0.9rem;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .note-card-countdown {
   color: var(--primary);
   font-weight: 700;

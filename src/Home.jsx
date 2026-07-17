@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
-import { daysUntilTest, formatDaysUntilTest, computeTodaysReview } from './reviewPlan.js'
+import { daysUntilTest, formatDaysUntilTest } from './reviewPlan.js'
 import { computeMastery } from './mastery.js'
 import ProgressRing from './ProgressRing.jsx'
 
@@ -13,11 +13,7 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
   const [importError, setImportError] = useState(null)
   const [isImporting, setIsImporting] = useState(false)
   const hasNotes = notes.length > 0
-  // The subject filter (set from the desktop sidebar) only narrows the main
-  // grid — "Danes ponovi" still surfaces whatever needs review regardless of
-  // what you're currently browsing.
   const visibleNotes = subjectFilter ? notes.filter((note) => note.subject === subjectFilter) : notes
-  const todaysReview = computeTodaysReview(notes)
 
   async function handleImport(event) {
     event.preventDefault()
@@ -79,27 +75,6 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
         </div>
         {importError && <p>{importError}</p>}
       </form>
-
-      {todaysReview.length > 0 && (
-        <section className="review-section anim-slide-up" style={{ animationDelay: '160ms' }}>
-          <h2 className="review-section-title">📅 Danes ponovi</h2>
-          <ul className="review-card-list">
-            {todaysReview.map((note) => {
-              const subject = subjectMeta(note.subject)
-              return (
-                <li key={note.id}>
-                  <button type="button" className="review-card tap" onClick={() => onSelectNote(note.id)}>
-                    <span className="review-card-emoji" style={{ color: subject.color }}>
-                      {subject.emoji}
-                    </span>
-                    <span className="review-card-title">{note.title || 'Neimenovana snov'}</span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      )}
 
       <div className="home-section-header anim-slide-up" style={{ animationDelay: '200ms' }}>
         <h2>Tvoje snovi</h2>
