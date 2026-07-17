@@ -58,6 +58,10 @@ const STUDY_MODES = {
 }
 
 export default async function handler(req, res) {
+  if (req.headers['x-debug-route'] === '1') {
+    return res.status(200).json({ url: req.url, method: req.method, query: req.query })
+  }
+
   const segments = Array.isArray(req.query.segments) ? req.query.segments : [req.query.segments].filter(Boolean)
   const [id, action] = segments
   if (!id) return res.status(404).json({ error: 'Ta pot ne obstaja.' })
