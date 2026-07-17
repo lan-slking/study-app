@@ -336,7 +336,6 @@ function App() {
         currentView={view}
         subjectFilter={subjectFilter}
         onGoHome={handleGoHome}
-        onAddNote={() => setView('wizard')}
         onFilterSubject={handleFilterSubject}
       />
 

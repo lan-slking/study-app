@@ -3,7 +3,7 @@ import { subjectsInUse } from './subjects.js'
 // Persistent left navigation — desktop only (hidden via CSS below 1024px;
 // mobile keeps Domov itself as the hub, per the redesign brief). Always
 // rendered alongside whatever screen is active, not just on Domov.
-function Sidebar({ notes, streak, currentView, subjectFilter, profile, onUploadAvatar, onGoHome, onAddNote, onFilterSubject }) {
+function Sidebar({ notes, streak, currentView, subjectFilter, profile, onUploadAvatar, onGoHome, onFilterSubject }) {
   const subjects = subjectsInUse(notes)
 
   return (
@@ -22,10 +22,6 @@ function Sidebar({ notes, streak, currentView, subjectFilter, profile, onUploadA
         onClick={onGoHome}
       >
         🏠 Domov
-      </button>
-
-      <button type="button" className="app-sidebar-cta tap" onClick={onAddNote}>
-        + Nova snov
       </button>
 
       {streak > 0 && (
