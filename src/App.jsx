@@ -9,7 +9,7 @@ import Dopolnjevanje from './Dopolnjevanje.jsx'
 import { subjectMeta } from './subjects.js'
 import AuthScreen from './AuthScreen.jsx'
 import { apiFetch } from './apiFetch.js'
-import { restoreSessionFromUrl } from './auth.js'
+import { restoreSessionFromUrl, signOut } from './auth.js'
 import { avatarUrl, loadProfile, uploadAvatar } from './profile.js'
 import './App.css'
 
@@ -84,6 +84,11 @@ function App() {
     async function loadNotes() {
       try {
         const response = await apiFetch('/api/notes')
+        if (response.status === 401) {
+          signOut()
+          if (!cancelled) setSession(null)
+          return
+        }
         if (!response.ok) {
           throw new Error('Strežnik ni mogel naložiti zapiskov.')
         }
@@ -212,6 +217,23 @@ function App() {
   // photos — see NovaSnov.jsx. This just wires the result into app state.
   function handleNoteCreated(note) {
     setNotes((prev) => [note, ...prev])
+    setSelectedId(note.id)
+    setView('note')
+  }
+
+  async function handleImportSharedLink(link) {
+    const tokenMatch = link.trim().match(/[?&]import=([a-f0-9]{24})/i) || link.trim().match(/\/shared\/([a-f0-9]{24})/i)
+    const token = tokenMatch?.[1]
+    if (!token) throw new Error('Prilepi veljavno povezavo za deljen zapisek.')
+
+    const response = await apiFetch('/api/notes/import-shared', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    const note = await response.json()
+    if (!response.ok) throw new Error(note.error || 'Zapiska ni bilo mogoče dodati.')
+    setNotes((previous) => [note, ...previous])
     setSelectedId(note.id)
     setView('note')
   }
@@ -377,6 +399,7 @@ function App() {
             onSelectNote={handleSelectNote}
             onAddNote={() => setView('wizard')}
             onDeleteNote={handleDeleteNote}
+            onImportSharedLink={handleImportSharedLink}
           />
         )}
       </div>

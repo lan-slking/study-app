@@ -1,16 +1,20 @@
-// Formats a SQLite "YYYY-MM-DD HH:MM:SS" (UTC) timestamp as a Slovenian
-// relative-time string, bucketed by calendar day so it never grows into an
-// absurd raw day count.
+// Formats both the old SQLite timestamp and Supabase's ISO timestamp as a
+// Slovenian relative-time string.
 const DAY_MS = 24 * 60 * 60 * 1000
 
 function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
-export function formatRelativeDate(sqliteTimestamp) {
-  if (!sqliteTimestamp) return ''
+export function formatRelativeDate(timestamp) {
+  if (!timestamp) return ''
 
-  const then = new Date(sqliteTimestamp.replace(' ', 'T') + 'Z')
+  // SQLite used "YYYY-MM-DD HH:MM:SS" without a timezone; Supabase returns
+  // a complete ISO string such as "...T12:34:56+00:00". Appending another Z
+  // to the latter makes an invalid date and caused "pred NaN leti".
+  const normalized = timestamp.includes('T') ? timestamp : `${timestamp.replace(' ', 'T')}Z`
+  const then = new Date(normalized)
+  if (Number.isNaN(then.getTime())) return ''
   const dayDiff = Math.round((startOfDay(new Date()) - startOfDay(then)) / DAY_MS)
 
   if (dayDiff <= 0) return 'danes'

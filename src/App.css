@@ -325,6 +325,20 @@
   color: var(--foreground);
 }
 
+.shared-import {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--card) 75%, transparent);
+}
+
+.shared-import label { display: block; margin-bottom: 0.65rem; font-size: 0.9rem; font-weight: 800; }
+.shared-import > div { display: flex; gap: 0.5rem; }
+.shared-import input { min-width: 0; flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--input); color: var(--foreground); padding: 0.7rem; font: inherit; }
+.shared-import .secondary-button { width: auto; padding: 0.7rem 0.9rem; white-space: nowrap; }
+.shared-import p { margin: 0.65rem 0 0; color: var(--destructive); font-size: 0.85rem; }
+
 /* Full-screen states shown before the app has notes to render at all. */
 .app-status {
   height: 100vh;
@@ -457,7 +471,17 @@
   border-radius: var(--radius);
   background-color: var(--card);
   color: var(--foreground);
-  font-size: 1.1rem;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.icon-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.icon-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
 }
 
 .icon-button-spacer {
@@ -1942,6 +1966,14 @@
     flex-shrink: 0;
   }
 
+  /* Keep the shared-note importer directly beneath the equally wide
+     "Nova snov" action instead of stretching it across the home screen. */
+  .shared-import {
+    width: 22rem;
+    box-sizing: border-box;
+    margin: 1rem 0 0 auto;
+  }
+
   .note-card-list {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -2099,6 +2131,8 @@
 
   .icon-button:hover {
     background-color: color-mix(in oklab, var(--card) 80%, var(--foreground));
+    color: var(--primary);
+    transform: translateY(-1px);
   }
 
   .subject-chip-button:hover {

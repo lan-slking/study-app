@@ -8,6 +8,19 @@ import { downloadTextFile, slugifyFilename, buildFlashcardsCsv } from './downloa
 
 const MODE_LABELS = { full: 'Celotni zapiski', summary: 'Povzetek' }
 
+function ToolbarIcon({ name }) {
+  const common = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
+  const paths = {
+    back: <><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></>,
+    download: <><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></>,
+    share: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 10.5 6.8-4" /><path d="m8.6 13.5 6.8 4" /></>,
+    edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></>,
+    done: <path d="m5 12 4 4L19 6" />,
+  }
+
+  return <svg {...common}>{paths[name]}</svg>
+}
+
 // Zapiski is the main "look at your notes" screen: rendered Markdown as the
 // primary content, with editing tucked behind a pencil icon and Kviz/Kartice
 // as the two things you'd actually want to do next, pinned to the bottom.
@@ -71,7 +84,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
       if (!response.ok) {
         throw new Error(data.error || 'Povezave za deljenje ni bilo mogoče ustvariti.')
       }
-      setShareLink(`${window.location.origin}/shared/${data.shareToken}`)
+      setShareLink(`${window.location.origin}/?import=${data.shareToken}`)
     } catch (err) {
       setShareError(err.message || 'Povezave za deljenje ni bilo mogoče ustvariti.')
     } finally {
@@ -92,8 +105,8 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
     <main className="zapiski">
       <div className="zapiski-main">
         <div className="zapiski-topbar">
-          <button type="button" className="icon-button tap" onClick={onBack} aria-label="Nazaj">
-            ←
+          <button type="button" className="icon-button tap" onClick={onBack} aria-label="Nazaj" title="Nazaj">
+            <ToolbarIcon name="back" />
           </button>
 
           <div className="zapiski-topbar-actions">
@@ -107,8 +120,9 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
                 }}
                 disabled={!hasContent}
                 aria-label="Izvozi"
+                title="Izvozi zapiske"
               >
-                ⬇️
+                <ToolbarIcon name="download" />
               </button>
 
               {isExportMenuOpen && (
@@ -131,8 +145,9 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
                 onClick={handleToggleShare}
                 disabled={!hasContent}
                 aria-label="Deli"
+                title="Deli povezavo"
               >
-                🔗
+                <ToolbarIcon name="share" />
               </button>
 
               {isShareMenuOpen && (
@@ -156,8 +171,9 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
               className="icon-button tap"
               onClick={() => setIsEditing((v) => !v)}
               aria-label={isEditing ? 'Končaj urejanje' : 'Uredi'}
+              title={isEditing ? 'Končaj urejanje' : 'Uredi zapiske'}
             >
-              {isEditing ? '✓' : '✏️'}
+              <ToolbarIcon name={isEditing ? 'done' : 'edit'} />
             </button>
           </div>
         </div>

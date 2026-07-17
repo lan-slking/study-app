@@ -11,6 +11,10 @@ const authClient = createClient(supabaseUrl, supabasePublishableKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 })
 
+const publicClient = createClient(supabaseUrl, supabasePublishableKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+})
+
 function resultOrThrow({ data, error }) {
   if (error) throw error
   return data
@@ -42,6 +46,11 @@ export async function getNoteById(client, id) {
   const { data, error } = await client.from('notes').select('*').eq('id', id).maybeSingle()
   if (error) throw error
   return data
+}
+
+export async function getSharedNoteByToken(token) {
+  const rows = resultOrThrow(await publicClient.rpc('get_shared_note', { share_token_input: token }))
+  return rows[0] ?? null
 }
 
 export async function createNote(client, { title, content, subject = '', mode = '', testDate = null }) {

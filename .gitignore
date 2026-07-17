@@ -40,6 +40,7 @@ Thumbs.db
 .cache/
 .eslintcache
 .turbo/
+.vercel/
 
 # Local SQLite database (server/db.js) — user data, not source
 server/data.sqlite

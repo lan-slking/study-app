@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
 import { daysUntilTest, formatDaysUntilTest, computeTodaysReview } from './reviewPlan.js'
@@ -7,13 +8,30 @@ import ProgressRing from './ProgressRing.jsx'
 // Home is the app's landing screen: brand header, greeting, the single
 // "start something new" action, and (once they exist) cards for the user's
 // study topics. It receives everything as props from App.jsx.
-function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteNote }) {
+function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteNote, onImportSharedLink }) {
+  const [sharedLink, setSharedLink] = useState('')
+  const [importError, setImportError] = useState(null)
+  const [isImporting, setIsImporting] = useState(false)
   const hasNotes = notes.length > 0
   // The subject filter (set from the desktop sidebar) only narrows the main
   // grid — "Danes ponovi" still surfaces whatever needs review regardless of
   // what you're currently browsing.
   const visibleNotes = subjectFilter ? notes.filter((note) => note.subject === subjectFilter) : notes
   const todaysReview = computeTodaysReview(notes)
+
+  async function handleImport(event) {
+    event.preventDefault()
+    setIsImporting(true)
+    setImportError(null)
+    try {
+      await onImportSharedLink(sharedLink)
+      setSharedLink('')
+    } catch (error) {
+      setImportError(error.message || 'Zapiska ni bilo mogoče dodati.')
+    } finally {
+      setIsImporting(false)
+    }
+  }
 
   return (
     <main className="home">
@@ -52,6 +70,15 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
           <span className="home-cta-arrow">→</span>
         </button>
       </div>
+
+      <form className="shared-import anim-slide-up" onSubmit={handleImport}>
+        <label htmlFor="shared-link">Dodaj deljeno snov</label>
+        <div>
+          <input id="shared-link" type="url" value={sharedLink} onChange={(event) => setSharedLink(event.target.value)} placeholder="Prilepi povezavo do zapiska" required />
+          <button type="submit" className="secondary-button tap" disabled={isImporting}>{isImporting ? 'Dodajam ...' : 'Dodaj'}</button>
+        </div>
+        {importError && <p>{importError}</p>}
+      </form>
 
       {todaysReview.length > 0 && (
         <section className="review-section anim-slide-up" style={{ animationDelay: '160ms' }}>
