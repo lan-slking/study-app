@@ -23,12 +23,12 @@ const MODES = [
   { key: 'summary', emoji: '✂️', title: 'Povzetek', subtitle: 'Krajše, samo bistvo.' },
 ]
 
-let nextPhotoId = 0
+let nextFileId = 0
 
 // NovaSnov is the guided "create a study topic" flow: subject, title, add
-// photos, pick a mode, then process everything into one note. Nothing is
-// saved to the backend until the very end (POST /api/notes) — up to that
-// point this is all local wizard state.
+// files (photos, PDFs, Word/PowerPoint docs), pick a mode, then process
+// everything into one note. Nothing is saved to the backend until the very
+// end (POST /api/notes) — up to that point this is all local wizard state.
 function NovaSnov({ notes, onCreated, onCancel }) {
   const [step, setStep] = useState(1)
   const [subjectKey, setSubjectKey] = useState('')
@@ -37,7 +37,7 @@ function NovaSnov({ notes, onCreated, onCancel }) {
   const [title, setTitle] = useState('')
   const [showTestDate, setShowTestDate] = useState(false)
   const [testDate, setTestDate] = useState('')
-  const [photos, setPhotos] = useState([]) // { id, file, previewUrl }
+  const [files, setFiles] = useState([]) // { id, file, previewUrl, isImage }
   const [mode, setMode] = useState('full')
   const [phase, setPhase] = useState('form') // 'form' | 'processing' | 'error'
   const [processingStage, setProcessingStage] = useState('ocr') // 'ocr' | 'pregenerating'
@@ -50,15 +50,17 @@ function NovaSnov({ notes, onCreated, onCancel }) {
   const customSubjects = customSubjectsInUse(notes)
 
   // Revoke object URLs for any remaining previews when the wizard unmounts —
-  // read through a ref so the cleanup sees the latest photos, not whatever
+  // read through a ref so the cleanup sees the latest files, not whatever
   // was current when this effect first ran.
-  const photosRef = useRef(photos)
+  const filesRef = useRef(files)
   useEffect(() => {
-    photosRef.current = photos
-  }, [photos])
+    filesRef.current = files
+  }, [files])
   useEffect(() => {
     return () => {
-      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.previewUrl))
+      filesRef.current.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl)
+      })
     }
   }, [])
 
@@ -86,23 +88,27 @@ function NovaSnov({ notes, onCreated, onCancel }) {
   }
 
   function handleFilesSelected(e) {
-    const files = Array.from(e.target.files)
+    const selected = Array.from(e.target.files)
     e.target.value = ''
-    if (files.length === 0) return
+    if (selected.length === 0) return
 
-    const newPhotos = files.map((file) => ({
-      id: nextPhotoId++,
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }))
-    setPhotos((prev) => [...prev, ...newPhotos])
+    const newFiles = selected.map((file) => {
+      const isImage = file.type.startsWith('image/')
+      return {
+        id: nextFileId++,
+        file,
+        isImage,
+        previewUrl: isImage ? URL.createObjectURL(file) : null,
+      }
+    })
+    setFiles((prev) => [...prev, ...newFiles])
   }
 
-  function handleRemovePhoto(id) {
-    setPhotos((prev) => {
-      const target = prev.find((p) => p.id === id)
-      if (target) URL.revokeObjectURL(target.previewUrl)
-      return prev.filter((p) => p.id !== id)
+  function handleRemoveFile(id) {
+    setFiles((prev) => {
+      const target = prev.find((f) => f.id === id)
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
+      return prev.filter((f) => f.id !== id)
     })
   }
 
@@ -114,16 +120,18 @@ function NovaSnov({ notes, onCreated, onCancel }) {
 
     try {
       const pageContents = []
-      for (const photo of photos) {
-        let imageBlob
-        try {
-          imageBlob = await compressImage(photo.file)
-        } catch {
-          imageBlob = photo.file
+      for (const item of files) {
+        let uploadBlob = item.file
+        if (item.isImage) {
+          try {
+            uploadBlob = await compressImage(item.file)
+          } catch {
+            uploadBlob = item.file
+          }
         }
 
         const formData = new FormData()
-        formData.append('image', imageBlob, photo.file.name)
+        formData.append('file', uploadBlob, item.file.name)
         formData.append('mode', mode)
 
         const response = await apiFetch('/api/process-image', { method: 'POST', body: formData })
@@ -134,7 +142,7 @@ function NovaSnov({ notes, onCreated, onCancel }) {
           throw new Error('Strežnika ni bilo mogoče doseči. Preveri, ali backend teče.')
         }
         if (!response.ok) {
-          throw new Error(data.error || 'Pri obdelavi ene od fotografij je prišlo do napake.')
+          throw new Error(data.error || 'Pri obdelavi ene od datotek je prišlo do napake.')
         }
         pageContents.push(data.notes)
       }
@@ -203,7 +211,7 @@ function NovaSnov({ notes, onCreated, onCancel }) {
   const canGoNext =
     (step === 1 && Boolean(subjectKey)) ||
     (step === 2 && Boolean(title.trim())) ||
-    (step === 3 && photos.length > 0) ||
+    (step === 3 && files.length > 0) ||
     step === 4
 
   function handleBack() {
@@ -377,32 +385,39 @@ function NovaSnov({ notes, onCreated, onCancel }) {
 
       {step === 3 && (
         <div className="wizard-step anim-slide-in-right">
-          <h1>Dodaj fotografije</h1>
-          <p className="wizard-subtitle">Slikaj strani zapiskov, po vrsti.</p>
+          <h1>Dodaj gradivo</h1>
+          <p className="wizard-subtitle">Slikaj zapiske ali dodaj PDF, Word oz. PowerPoint datoteko.</p>
 
           <button type="button" className="photo-dropzone tap" onClick={() => fileInputRef.current?.click()}>
-            <span className="photo-dropzone-icon">📷</span>
-            <span>Dotakni se za fotografijo</span>
+            <span className="photo-dropzone-icon">📎</span>
+            <span>Dotakni se za nalaganje</span>
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
             multiple
             onChange={handleFilesSelected}
             style={{ display: 'none' }}
           />
 
-          {photos.length > 0 && (
+          {files.length > 0 && (
             <ul className="photo-preview-grid">
-              {photos.map((photo, index) => (
-                <li key={photo.id} className="photo-preview">
-                  <img src={photo.previewUrl} alt={`Stran ${index + 1}`} />
+              {files.map((item, index) => (
+                <li key={item.id} className="photo-preview">
+                  {item.isImage ? (
+                    <img src={item.previewUrl} alt={`Stran ${index + 1}`} />
+                  ) : (
+                    <div className="photo-preview-file">
+                      <span className="photo-preview-file-icon">📄</span>
+                      <span className="photo-preview-file-name">{item.file.name}</span>
+                    </div>
+                  )}
                   <span className="photo-preview-badge">{index + 1}</span>
                   <button
                     type="button"
                     className="photo-preview-remove"
-                    onClick={() => handleRemovePhoto(photo.id)}
+                    onClick={() => handleRemoveFile(item.id)}
                     aria-label={`Odstrani stran ${index + 1}`}
                   >
                     ✕

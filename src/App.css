@@ -1091,6 +1091,31 @@
   display: block;
 }
 
+.photo-preview-file {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.photo-preview-file-icon {
+  font-size: 1.75rem;
+}
+
+.photo-preview-file-name {
+  font-size: 0.65rem;
+  color: var(--foreground);
+  word-break: break-word;
+  line-height: 1.2;
+  max-height: 2.4em;
+  overflow: hidden;
+}
+
 .photo-preview-badge {
   position: absolute;
   bottom: 0.35rem;

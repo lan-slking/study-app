@@ -12,9 +12,11 @@ if (!GEMINI_API_KEY) {
 export const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 export const GEMINI_MODEL = "gemini-2.5-flash";
 
-// The two prompts the "Upload photo" feature can use, keyed by the `mode` field
-// the frontend sends alongside the image. Edit the wording here to change what
-// each mode produces — no other code changes needed.
+// The two prompts the "New study topic" feature can use, keyed by the `mode`
+// field the frontend sends alongside the upload. The source can be a photo of
+// handwritten notes, a PDF, or extracted text from a Word/PowerPoint file.
+// Edit the wording here to change what each mode produces — no other code
+// changes needed.
 // Shared formatting rules appended to both prompts below, so the Markdown
 // syntax only needs to be described once. The frontend renders this Markdown
 // with react-markdown — see src/NoteEditor.jsx and the ".markdown-view" rules
@@ -27,8 +29,8 @@ const MARKDOWN_FORMAT_RULES = `Format the output as Markdown:
 - Put each formula or equation on its own line, wrapped in single backticks, like \`E = mc^2\`.
 
 Language rule: write the title, headings, and every part of the notes in the
-same language as the source image. Never translate the source into English or
-another language. If the source uses more than one language, preserve each
+same language as the source material. Never translate the source into English
+or another language. If the source uses more than one language, preserve each
 part in its original language.
 
 Critical accuracy rule: if any word, phrase, or section is illegible, smudged,
@@ -38,17 +40,17 @@ gap is far more useful to a student than a confident-sounding wrong answer.`;
 
 export const PROMPTS = {
   // "Full notes" — transcribe everything, just cleaned up and organized.
-  full: `Transcribe the handwritten notes in this image, then organize them into clean, well-structured study notes.
+  full: `Transcribe the notes in the provided material, then organize them into clean, well-structured study notes.
 
 - Fix obvious spelling/OCR mistakes where the intent is clear.
 - Organize the content under clear headings.
-- Preserve the original meaning — don't invent information that isn't in the image.
+- Preserve the original meaning — don't invent information that isn't in the source material.
 ${MARKDOWN_FORMAT_RULES}
 
 Return only the resulting notes as Markdown (no extra commentary).`,
 
   // "Summary" — condensed study version, but never at the cost of testable content.
-  summary: `Read the handwritten notes in this image and produce a condensed study summary.
+  summary: `Read the notes in the provided material and produce a condensed study summary.
 
 - Keep all key concepts, definitions, and formulas exactly as written — never drop or alter anything a student could be tested on.
 - Cut filler, repetition, and redundant examples.
