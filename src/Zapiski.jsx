@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { apiFetch } from './apiFetch.js'
 import { subjectMeta } from './subjects.js'
@@ -36,9 +36,23 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
   const [shareLink, setShareLink] = useState(null)
   const [shareError, setShareError] = useState(null)
   const [copyFeedback, setCopyFeedback] = useState(false)
+  const shareMenuRef = useRef(null)
   const subject = subjectMeta(note.subject)
   const hasContent = Boolean(note.content.trim())
   const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
+
+  // Close the share menu on any click outside it — not just re-clicking the
+  // share button — so it behaves like a normal dropdown.
+  useEffect(() => {
+    if (!isShareMenuOpen) return
+    function handlePointerDown(e) {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target)) {
+        setIsShareMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [isShareMenuOpen])
 
   async function handleExportPdf() {
     setIsExportingPdf(true)
@@ -117,7 +131,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
               )}
             </div>
 
-            <div className="export-menu-wrap">
+            <div className="export-menu-wrap" ref={shareMenuRef}>
               <button
                 type="button"
                 className="icon-button tap"
