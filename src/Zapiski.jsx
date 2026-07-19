@@ -4,7 +4,7 @@ import { apiFetch } from './apiFetch.js'
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
 import { daysUntilTest, formatDaysUntilTest } from './reviewPlan.js'
-import { downloadTextFile, slugifyFilename, buildFlashcardsCsv } from './downloadFile.js'
+import { exportNoteAsPdf } from './exportNotePdf.jsx'
 
 const MODE_LABELS = { full: 'Celotni zapiski', summary: 'Povzetek' }
 
@@ -26,8 +26,7 @@ function ToolbarIcon({ name }) {
 // as the two things you'd actually want to do next, pinned to the bottom.
 function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onOpenDopolnjevanje }) {
   const [isEditing, setIsEditing] = useState(false)
-  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
-  const [isExportingCsv, setIsExportingCsv] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [exportError, setExportError] = useState(null)
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
@@ -38,31 +37,15 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
   const hasContent = Boolean(note.content.trim())
   const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
 
-  function handleExportMarkdown() {
-    downloadTextFile(`${slugifyFilename(note.title)}.md`, note.content, 'text/markdown;charset=utf-8')
-    setIsExportMenuOpen(false)
-  }
-
-  async function handleExportFlashcardsCsv() {
-    setIsExportingCsv(true)
+  async function handleExportPdf() {
+    setIsExportingPdf(true)
     setExportError(null)
     try {
-      const response = await apiFetch(`/api/notes/${note.id}/flashcards`, { method: 'POST' })
-      let data
-      try {
-        data = await response.json()
-      } catch {
-        throw new Error('Strežnika ni bilo mogoče doseči. Preveri, ali backend teče.')
-      }
-      if (!response.ok) {
-        throw new Error(data.error || 'Kartončkov ni bilo mogoče ustvariti za izvoz.')
-      }
-      downloadTextFile(`${slugifyFilename(note.title)}-kartoncki.csv`, buildFlashcardsCsv(data.cards), 'text/csv;charset=utf-8')
-      setIsExportMenuOpen(false)
+      await exportNoteAsPdf(note, subject.color)
     } catch (err) {
-      setExportError(err.message || 'Izvoz ni uspel. Poskusi znova.')
+      setExportError(err.message || 'Izvoz v PDF ni uspel. Poskusi znova.')
     } finally {
-      setIsExportingCsv(false)
+      setIsExportingPdf(false)
     }
   }
 
@@ -114,25 +97,17 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
               <button
                 type="button"
                 className="icon-button tap"
-                onClick={() => {
-                  setIsExportMenuOpen((v) => !v)
-                  setExportError(null)
-                }}
-                disabled={!hasContent}
-                aria-label="Izvozi"
-                title="Izvozi zapiske"
+                onClick={handleExportPdf}
+                disabled={!hasContent || isExportingPdf}
+                aria-label="Izvozi v PDF"
+                title="Izvozi zapiske v PDF"
               >
                 <ToolbarIcon name="download" />
               </button>
 
-              {isExportMenuOpen && (
+              {(isExportingPdf || exportError) && (
                 <div className="export-menu">
-                  <button type="button" className="export-menu-item tap" onClick={handleExportFlashcardsCsv} disabled={isExportingCsv}>
-                    📇 {isExportingCsv ? 'Pripravljam ...' : 'Kartončki (CSV)'}
-                  </button>
-                  <button type="button" className="export-menu-item tap" onClick={handleExportMarkdown}>
-                    📝 Zapiski (Markdown)
-                  </button>
+                  {isExportingPdf && <p className="export-menu-item">Pripravljam PDF ...</p>}
                   {exportError && <p className="export-menu-error">{exportError}</p>}
                 </div>
               )}
