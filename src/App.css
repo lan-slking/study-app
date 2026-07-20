@@ -615,22 +615,117 @@
 }
 
 .profile-section h2 {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 1rem;
 }
 
-.profile-avatar-section {
+.profile-section-header {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  text-align: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 }
 
-.profile-avatar-section p {
-  margin: 0;
+.profile-avatar-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.profile-avatar-editable { cursor: pointer; }
+.profile-avatar-editable:hover::after { content: '↥'; position: absolute; inset: 0; display: grid; place-items: center; background: oklch(10% 0 0 / 0.45); color: white; }
+
+.profile-view-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.profile-view-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-view-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.profile-view-label {
   color: var(--muted-foreground);
   font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.profile-view-value {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.profile-password-value {
+  font-size: 0.9rem;
+}
+
+.profile-eye-btn {
+  width: 2rem;
+  height: 2rem;
+  background: none;
+  flex-shrink: 0;
+}
+
+.profile-eye-btn svg,
+.profile-eye-btn {
+  font-size: 0.95rem;
+}
+
+.profile-edit-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-edit-form label {
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.profile-edit-form input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--input);
+  color: var(--foreground);
+  padding: 0.8rem;
+  font: inherit;
+}
+
+.profile-password-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-password-input-wrap input {
+  flex: 1;
+}
+
+.profile-edit-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.profile-edit-actions .secondary-button,
+.profile-edit-actions .primary-button {
+  width: auto;
+  flex: 1;
 }
 
 .profile-danger-section p {
