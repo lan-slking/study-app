@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
 import { daysUntilTest, formatDaysUntilTest } from './reviewPlan.js'
@@ -7,27 +6,14 @@ import ProgressRing from './ProgressRing.jsx'
 
 // Home is the app's landing screen: brand header, greeting, the single
 // "start something new" action, and (once they exist) cards for the user's
-// study topics. It receives everything as props from App.jsx.
-function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteNote, onImportSharedLink }) {
-  const [sharedLink, setSharedLink] = useState('')
-  const [importError, setImportError] = useState(null)
-  const [isImporting, setIsImporting] = useState(false)
+// study topics. It receives everything as props from App.jsx. Notes someone
+// else shared with the current user are mixed in here too (see the notes
+// RLS policy in supabase/migrations/20260720_collaborative_sharing.sql) —
+// they just carry a different note.user_id, which the "👥 Deljeno" badge
+// below keys off.
+function Home({ notes, streak, currentUserId, subjectFilter, onSelectNote, onAddNote, onDeleteNote }) {
   const hasNotes = notes.length > 0
   const visibleNotes = subjectFilter ? notes.filter((note) => note.subject === subjectFilter) : notes
-
-  async function handleImport(event) {
-    event.preventDefault()
-    setIsImporting(true)
-    setImportError(null)
-    try {
-      await onImportSharedLink(sharedLink)
-      setSharedLink('')
-    } catch (error) {
-      setImportError(error.message || 'Zapiska ni bilo mogoče dodati.')
-    } finally {
-      setIsImporting(false)
-    }
-  }
 
   return (
     <main className="home">
@@ -67,15 +53,6 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
         </button>
       </div>
 
-      <form className="shared-import anim-slide-up" onSubmit={handleImport}>
-        <label htmlFor="shared-link">Dodaj deljeno snov</label>
-        <div>
-          <input id="shared-link" type="url" value={sharedLink} onChange={(event) => setSharedLink(event.target.value)} placeholder="Prilepi povezavo do zapiska" required />
-          <button type="submit" className="secondary-button tap" disabled={isImporting}>{isImporting ? 'Dodajam ...' : 'Dodaj'}</button>
-        </div>
-        {importError && <p>{importError}</p>}
-      </form>
-
       <div className="home-section-header anim-slide-up" style={{ animationDelay: '200ms' }}>
         <h2>Tvoje snovi</h2>
         {hasNotes && (
@@ -97,6 +74,7 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
             const subject = subjectMeta(note.subject)
             const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
             const mastery = computeMastery(note)
+            const isShared = Boolean(currentUserId) && note.user_id !== currentUserId
             return (
               <li
                 key={note.id}
@@ -123,6 +101,7 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
                       )}
                       <span>{formatRelativeDate(note.updated_at)}</span>
                       {testCountdown && <span className="note-card-countdown">🗓️ {testCountdown}</span>}
+                      {isShared && <span className="note-card-shared-badge">👥 Deljeno</span>}
                     </div>
                   </div>
                   <ProgressRing
@@ -135,17 +114,19 @@ function Home({ notes, streak, subjectFilter, onSelectNote, onAddNote, onDeleteN
                   />
                 </button>
 
-                <button
-                  type="button"
-                  className="note-card-delete tap"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteNote(note.id)
-                  }}
-                  aria-label={`Izbriši ${note.title || 'Neimenovana snov'}`}
-                >
-                  ✕
-                </button>
+                {!isShared && (
+                  <button
+                    type="button"
+                    className="note-card-delete tap"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteNote(note.id)
+                    }}
+                    aria-label={`Izbriši ${note.title || 'Neimenovana snov'}`}
+                  >
+                    ✕
+                  </button>
+                )}
               </li>
             )
           })}

@@ -9,6 +9,11 @@ function userId() {
   try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub } catch { return null }
 }
 
+// Exposed for anything that needs to know "am I the owner of this note" —
+// e.g. Zapiski.jsx's collaborator permission gating — without duplicating
+// the JWT decode above.
+export const getCurrentUserId = userId
+
 function headers(extra = {}) {
   const token = getSession()?.access_token
   return { apikey: publishableKey, Authorization: `Bearer ${token}`, ...extra }

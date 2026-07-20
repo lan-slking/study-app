@@ -5,8 +5,15 @@ import { subjectMeta } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
 import { daysUntilTest, formatDaysUntilTest } from './reviewPlan.js'
 import { exportNoteAsPdf } from './exportNotePdf.jsx'
+import { avatarUrl } from './profile.js'
+import { supabase } from './supabase.js'
 
 const MODE_LABELS = { full: 'Celotni zapiski', summary: 'Povzetek' }
+
+// How recently we must have typed a local edit before we start trusting a
+// Realtime echo of our own save over what's still in the text box — avoids
+// a save round-trip landing mid-keystroke and reverting newer local input.
+const OWN_EDIT_GRACE_MS = 2000
 
 function ToolbarIcon({ name, size = 20 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
@@ -16,43 +23,132 @@ function ToolbarIcon({ name, size = 20 }) {
     share: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 10.5 6.8-4" /><path d="m8.6 13.5 6.8 4" /></>,
     edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></>,
     done: <path d="m5 12 4 4L19 6" />,
-    link: <><path d="M9 17H7A5 5 0 0 1 7 7h2" /><path d="M15 7h2a5 5 0 1 1 0 10h-2" /><path d="M8 12h8" /></>,
-    copy: <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>,
-    check: <path d="m5 12 4 4L19 6" />,
+    close: <><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>,
   }
 
   return <svg {...common}>{paths[name]}</svg>
 }
 
+function CollaboratorAvatar({ username, avatarPath }) {
+  const url = avatarUrl(avatarPath)
+  return (
+    <span className="collaborator-avatar">
+      {url ? <img src={url} alt="" /> : <span>{username?.[0]?.toUpperCase() ?? '?'}</span>}
+    </span>
+  )
+}
+
 // Zapiski is the main "look at your notes" screen: rendered Markdown as the
 // primary content, with editing tucked behind a pencil icon and Kviz/Kartice
 // as the two things you'd actually want to do next, pinned to the bottom.
-function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onOpenDopolnjevanje }) {
+function Zapiski({ note, currentUserId, onUpdateNote, onRemoteNoteUpdate, onBack, onOpenQuiz, onOpenFlashcards, onOpenDopolnjevanje }) {
   const [isEditing, setIsEditing] = useState(false)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [exportError, setExportError] = useState(null)
-  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false)
-  const [isSharing, setIsSharing] = useState(false)
-  const [shareLink, setShareLink] = useState(null)
-  const [shareError, setShareError] = useState(null)
-  const [copyFeedback, setCopyFeedback] = useState(false)
-  const shareMenuRef = useRef(null)
+
+  const [isAccessMenuOpen, setIsAccessMenuOpen] = useState(false)
+  const [collaborators, setCollaborators] = useState([])
+  const [accessError, setAccessError] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [justUpdated, setJustUpdated] = useState(false)
+
+  const accessMenuRef = useRef(null)
+  const noteRef = useRef(note)
+  const lastLocalEditRef = useRef(0)
+
   const subject = subjectMeta(note.subject)
   const hasContent = Boolean(note.content.trim())
   const testCountdown = formatDaysUntilTest(daysUntilTest(note.test_date))
 
-  // Close the share menu on any click outside it — not just re-clicking the
-  // share button — so it behaves like a normal dropdown.
+  const isOwner = Boolean(currentUserId) && note.user_id === currentUserId
+  const myCollaboration = collaborators.find((c) => c.user_id === currentUserId)
+  const canEdit = isOwner || myCollaboration?.permission === 'edit'
+
   useEffect(() => {
-    if (!isShareMenuOpen) return
+    noteRef.current = note
+  }, [note])
+
+  // Load who currently has access whenever a different note opens — also
+  // powers the "👥 N" badge and (for non-owners) whether I can edit at all.
+  useEffect(() => {
+    let cancelled = false
+    setCollaborators([])
+    apiFetch(`/api/notes/${note.id}/collaborators`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setCollaborators(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [note.id])
+
+  // Live sync: when a collaborator's save lands, refresh title/content
+  // without waiting for a manual reload. Last-write-wins if both edit at the
+  // exact same moment — no character-level merge, by design.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`note-${note.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notes', filter: `id=eq.${note.id}` },
+        (payload) => {
+          if (Date.now() - lastLocalEditRef.current < OWN_EDIT_GRACE_MS) return
+          const { title, content } = payload.new
+          if (title === noteRef.current.title && content === noteRef.current.content) return
+          onRemoteNoteUpdate(note.id, { title, content })
+          setJustUpdated(true)
+          setTimeout(() => setJustUpdated(false), 1500)
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [note.id, onRemoteNoteUpdate])
+
+  // Close the access menu on any click outside it.
+  useEffect(() => {
+    if (!isAccessMenuOpen) return
     function handlePointerDown(e) {
-      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target)) {
-        setIsShareMenuOpen(false)
+      if (accessMenuRef.current && !accessMenuRef.current.contains(e.target)) {
+        setIsAccessMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handlePointerDown)
     return () => document.removeEventListener('mousedown', handlePointerDown)
-  }, [isShareMenuOpen])
+  }, [isAccessMenuOpen])
+
+  // Type-ahead search for who to share with, debounced.
+  useEffect(() => {
+    const query = searchQuery.trim()
+    if (query.length < 2) {
+      setSearchResults([])
+      return
+    }
+    setIsSearching(true)
+    const timer = setTimeout(async () => {
+      try {
+        const response = await apiFetch(`/api/profiles/search?q=${encodeURIComponent(query)}`)
+        const data = await response.json()
+        setSearchResults(Array.isArray(data) ? data : [])
+      } catch {
+        setSearchResults([])
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  function handleLocalUpdate(fields) {
+    lastLocalEditRef.current = Date.now()
+    onUpdateNote(fields)
+  }
 
   async function handleExportPdf() {
     setIsExportingPdf(true)
@@ -66,41 +162,48 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
     }
   }
 
-  async function handleToggleShare() {
-    setIsShareMenuOpen((v) => !v)
-    setShareError(null)
-    setCopyFeedback(false)
-    if (shareLink) return // already generated this session — same link every time
-
-    setIsSharing(true)
+  async function handleAddCollaborator(result) {
+    setAccessError(null)
+    setCollaborators((prev) => [...prev, { ...result, permission: 'view' }])
+    setSearchQuery('')
+    setSearchResults([])
     try {
-      const response = await apiFetch(`/api/notes/${note.id}/share`, { method: 'POST' })
-      let data
-      try {
-        data = await response.json()
-      } catch {
-        throw new Error('Strežnika ni bilo mogoče doseči. Preveri, ali backend teče.')
-      }
+      const response = await apiFetch(`/api/notes/${note.id}/collaborators`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: result.user_id, permission: 'view' }),
+      })
       if (!response.ok) {
-        throw new Error(data.error || 'Povezave za deljenje ni bilo mogoče ustvariti.')
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Dostopa ni bilo mogoče dodati.')
       }
-      setShareLink(`${window.location.origin}/?import=${data.shareToken}`)
     } catch (err) {
-      setShareError(err.message || 'Povezave za deljenje ni bilo mogoče ustvariti.')
-    } finally {
-      setIsSharing(false)
+      setCollaborators((prev) => prev.filter((c) => c.user_id !== result.user_id))
+      setAccessError(err.message || 'Dostopa ni bilo mogoče dodati.')
     }
   }
 
-  async function handleCopyShareLink() {
-    try {
-      await navigator.clipboard.writeText(shareLink)
-      setCopyFeedback(true)
-      setTimeout(() => setCopyFeedback(false), 1500)
-    } catch {
-      setCopyFeedback(false)
-    }
+  function handleChangePermission(userId, permission) {
+    setCollaborators((prev) => prev.map((c) => (c.user_id === userId ? { ...c, permission } : c)))
+    apiFetch(`/api/notes/${note.id}/collaborators`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, permission }),
+    }).catch((err) => console.error('Failed to update permission:', err))
   }
+
+  function handleRemoveCollaborator(userId) {
+    setCollaborators((prev) => prev.filter((c) => c.user_id !== userId))
+    apiFetch(`/api/notes/${note.id}/collaborators`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    }).catch((err) => console.error('Failed to remove collaborator:', err))
+  }
+
+  const searchResultsToShow = searchResults.filter(
+    (result) => !collaborators.some((c) => c.user_id === result.user_id),
+  )
 
   return (
     <main className="zapiski">
@@ -111,6 +214,8 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
           </button>
 
           <div className="zapiski-topbar-actions">
+            {justUpdated && <span className="zapiski-live-pill anim-pop-in">✓ Posodobljeno</span>}
+
             <div className="export-menu-wrap">
               <button
                 type="button"
@@ -131,61 +236,125 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
               )}
             </div>
 
-            <div className="export-menu-wrap" ref={shareMenuRef}>
+            <div className="export-menu-wrap" ref={accessMenuRef}>
               <button
                 type="button"
                 className="icon-button tap"
-                onClick={handleToggleShare}
-                disabled={!hasContent}
+                onClick={() => {
+                  setIsAccessMenuOpen((v) => !v)
+                  setAccessError(null)
+                }}
                 aria-label="Deli"
-                title="Deli povezavo"
+                title="Deli zapiske"
               >
                 <ToolbarIcon name="share" />
               </button>
 
-              {isShareMenuOpen && (
-                <div className="export-menu">
-                  {isSharing && <p className="export-menu-item">Ustvarjam povezavo ...</p>}
-                  {shareError && <p className="export-menu-error">{shareError}</p>}
-                  {shareLink && (
-                    <button type="button" className="share-link-row tap" onClick={handleCopyShareLink}>
-                      <span className="share-link-icon">
-                        <ToolbarIcon name="link" size={16} />
-                      </span>
-                      <span className="share-link-info">
-                        <span className="share-link-title">Povezava za deljenje</span>
-                        <span className="share-link-url">{shareLink}</span>
-                      </span>
-                      <span className={`share-link-copy-btn${copyFeedback ? ' share-link-copy-btn-done' : ''}`}>
-                        <ToolbarIcon name={copyFeedback ? 'check' : 'copy'} size={16} />
-                      </span>
-                    </button>
+              {isAccessMenuOpen && (
+                <div className="export-menu access-menu">
+                  {isOwner && (
+                    <>
+                      <input
+                        type="text"
+                        className="access-search-input"
+                        placeholder="Poišči uporabnika po uporabniškem imenu"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        autoFocus
+                      />
+                      {isSearching && <p className="export-menu-item">Iščem ...</p>}
+                      {searchResultsToShow.map((result) => (
+                        <button
+                          key={result.user_id}
+                          type="button"
+                          className="share-link-row tap"
+                          onClick={() => handleAddCollaborator(result)}
+                        >
+                          <CollaboratorAvatar username={result.username} avatarPath={result.avatar_path} />
+                          <span className="share-link-info">
+                            <span className="share-link-title">@{result.username}</span>
+                          </span>
+                          <span className="share-link-copy-btn">+</span>
+                        </button>
+                      ))}
+                      {accessError && <p className="export-menu-error">{accessError}</p>}
+                      {collaborators.length > 0 && <div className="access-menu-divider" />}
+                    </>
+                  )}
+
+                  {collaborators.length === 0 ? (
+                    <p className="export-menu-item access-menu-empty">
+                      {isOwner ? 'Zapiskov še nisi delil.' : 'Zapisek je viden samo tebi in lastniku.'}
+                    </p>
+                  ) : (
+                    collaborators.map((c) => (
+                      <div key={c.user_id} className="share-link-row access-collaborator-row">
+                        <CollaboratorAvatar username={c.username} avatarPath={c.avatar_path} />
+                        <span className="share-link-info">
+                          <span className="share-link-title">@{c.username}</span>
+                        </span>
+                        {isOwner ? (
+                          <>
+                            <select
+                              className="access-permission-select"
+                              value={c.permission}
+                              onChange={(e) => handleChangePermission(c.user_id, e.target.value)}
+                            >
+                              <option value="view">Ogled</option>
+                              <option value="edit">Urejanje</option>
+                            </select>
+                            <button
+                              type="button"
+                              className="icon-button tap access-remove-btn"
+                              onClick={() => handleRemoveCollaborator(c.user_id)}
+                              aria-label={`Odstrani dostop za @${c.username}`}
+                            >
+                              <ToolbarIcon name="close" size={14} />
+                            </button>
+                          </>
+                        ) : (
+                          <span className="access-permission-label">
+                            {c.permission === 'edit' ? 'Urejanje' : 'Ogled'}
+                          </span>
+                        )}
+                      </div>
+                    ))
                   )}
                 </div>
               )}
             </div>
 
-            <button
-              type="button"
-              className="icon-button tap"
-              onClick={() => setIsEditing((v) => !v)}
-              aria-label={isEditing ? 'Končaj urejanje' : 'Uredi'}
-              title={isEditing ? 'Končaj urejanje' : 'Uredi zapiske'}
-            >
-              <ToolbarIcon name={isEditing ? 'done' : 'edit'} />
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                className="icon-button tap"
+                onClick={() => setIsEditing((v) => !v)}
+                aria-label={isEditing ? 'Končaj urejanje' : 'Uredi'}
+                title={isEditing ? 'Končaj urejanje' : 'Uredi zapiske'}
+              >
+                <ToolbarIcon name={isEditing ? 'done' : 'edit'} />
+              </button>
+            )}
           </div>
         </div>
 
         <div className="zapiski-header anim-slide-up">
-          {subject.label && (
-            <span
-              className="zapiski-subject-chip"
-              style={{ background: `color-mix(in oklab, ${subject.color} 20%, transparent)`, color: subject.color }}
-            >
-              {subject.emoji} {subject.label}
-            </span>
-          )}
+          <div className="zapiski-header-badges">
+            {subject.label && (
+              <span
+                className="zapiski-subject-chip"
+                style={{ background: `color-mix(in oklab, ${subject.color} 20%, transparent)`, color: subject.color }}
+              >
+                {subject.emoji} {subject.label}
+              </span>
+            )}
+
+            {collaborators.length > 0 && (
+              <button type="button" className="zapiski-collaborators-badge tap" onClick={() => setIsAccessMenuOpen(true)}>
+                👥 {collaborators.length}
+              </button>
+            )}
+          </div>
 
           {isEditing ? (
             <input
@@ -193,7 +362,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
               className="zapiski-title-input"
               value={note.title}
               placeholder="Naslov snovi"
-              onChange={(e) => onUpdateNote({ title: e.target.value })}
+              onChange={(e) => handleLocalUpdate({ title: e.target.value })}
             />
           ) : (
             <h1 className="zapiski-title">{note.title || 'Neimenovana snov'}</h1>
@@ -221,7 +390,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
                 type="date"
                 className="text-input"
                 value={note.test_date ?? ''}
-                onChange={(e) => onUpdateNote({ test_date: e.target.value || null })}
+                onChange={(e) => handleLocalUpdate({ test_date: e.target.value || null })}
               />
             </div>
           )}
@@ -232,7 +401,7 @@ function Zapiski({ note, onUpdateNote, onBack, onOpenQuiz, onOpenFlashcards, onO
             className="zapiski-textarea anim-slide-up"
             value={note.content}
             placeholder="Začni pisati ..."
-            onChange={(e) => onUpdateNote({ content: e.target.value })}
+            onChange={(e) => handleLocalUpdate({ content: e.target.value })}
           />
         ) : (
           <article className="zapiski-content anim-slide-up" style={{ '--subject-color': subject.color }}>

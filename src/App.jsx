@@ -10,7 +10,8 @@ import { subjectMeta } from './subjects.js'
 import AuthScreen from './AuthScreen.jsx'
 import { apiFetch } from './apiFetch.js'
 import { restoreSessionFromUrl, signOut } from './auth.js'
-import { avatarUrl, loadProfile, uploadAvatar } from './profile.js'
+import { avatarUrl, loadProfile, uploadAvatar, getCurrentUserId } from './profile.js'
+import { supabase } from './supabase.js'
 import './App.css'
 
 // How long to wait after the last keystroke before saving to the backend.
@@ -71,6 +72,20 @@ function App() {
     setSession(restoreSessionFromUrl())
     setIsAuthLoading(false)
   }, [])
+
+  // Realtime (used for live collaborator sync in Zapiski.jsx) is a separate
+  // client from this app's actual auth flow (src/auth.js talks to GoTrue
+  // directly with plain fetch, never through supabase-js) — so its socket
+  // has to be handed the access token explicitly. setSession alone doesn't
+  // reach Realtime here; setAuth is what postgres_changes checks against
+  // each row's RLS policy. Note: this app has no token-refresh flow at all,
+  // so — same as every other API call — this silently goes stale after the
+  // token expires (~1h). Not fixing that pre-existing gap here.
+  useEffect(() => {
+    if (!session?.access_token) return
+    supabase.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token })
+    supabase.realtime.setAuth(session.access_token)
+  }, [session])
 
   // Load all notes from the backend once, when the app first mounts.
   useEffect(() => {
@@ -221,23 +236,6 @@ function App() {
     setView('note')
   }
 
-  async function handleImportSharedLink(link) {
-    const tokenMatch = link.trim().match(/[?&]import=([a-f0-9]{24})/i) || link.trim().match(/\/shared\/([a-f0-9]{24})/i)
-    const token = tokenMatch?.[1]
-    if (!token) throw new Error('Prilepi veljavno povezavo za deljen zapisek.')
-
-    const response = await apiFetch('/api/notes/import-shared', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    })
-    const note = await response.json()
-    if (!response.ok) throw new Error(note.error || 'Zapiska ni bilo mogoče dodati.')
-    setNotes((previous) => [note, ...previous])
-    setSelectedId(note.id)
-    setView('note')
-  }
-
   function handleDeleteNote(id) {
     const pending = pendingSavesRef.current[id]
     if (pending) {
@@ -265,6 +263,13 @@ function App() {
     const updatedNote = { ...current, ...updatedFields }
     setNotes(notes.map((note) => (note.id === selectedId ? updatedNote : note)))
     scheduleSave(selectedId, updatedNote)
+  }
+
+  // Applies a change that a collaborator already saved on the server (via
+  // Realtime), so it never re-triggers our own save — only local state
+  // updates here, unlike handleUpdateNote above.
+  function handleRemoteNoteUpdate(id, updatedFields) {
+    setNotes((prev) => prev.map((note) => (note.id === id ? { ...note, ...updatedFields } : note)))
   }
 
   function handleQuizFinished(correct, total) {
@@ -347,7 +352,9 @@ function App() {
         {view === 'note' && selectedNote && (
           <Zapiski
             note={selectedNote}
+            currentUserId={getCurrentUserId()}
             onUpdateNote={handleUpdateNote}
+            onRemoteNoteUpdate={handleRemoteNoteUpdate}
             onBack={handleBackToHome}
             onOpenQuiz={() => openStudyMode('quiz')}
             onOpenFlashcards={() => openStudyMode('flashcards')}
@@ -394,11 +401,11 @@ function App() {
           <Home
             notes={notes}
             streak={streak}
+            currentUserId={getCurrentUserId()}
             subjectFilter={subjectFilter}
             onSelectNote={handleSelectNote}
             onAddNote={() => setView('wizard')}
             onDeleteNote={handleDeleteNote}
-            onImportSharedLink={handleImportSharedLink}
           />
         )}
       </div>

@@ -311,19 +311,6 @@
   color: var(--foreground);
 }
 
-.shared-import {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: color-mix(in oklab, var(--card) 75%, transparent);
-}
-
-.shared-import label { display: block; margin-bottom: 0.65rem; font-size: 0.9rem; font-weight: 800; }
-.shared-import > div { display: flex; gap: 0.5rem; }
-.shared-import input { min-width: 0; flex: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--input); color: var(--foreground); padding: 0.7rem; font: inherit; }
-.shared-import .secondary-button { width: auto; padding: 0.7rem 0.9rem; white-space: nowrap; }
-.shared-import p { margin: 0.65rem 0 0; color: var(--destructive); font-size: 0.85rem; }
 
 /* Full-screen states shown before the app has notes to render at all. */
 .app-status {
@@ -828,6 +815,11 @@
 
 .note-card-countdown {
   color: var(--primary);
+  font-weight: 700;
+}
+
+.note-card-shared-badge {
+  color: var(--muted-foreground);
   font-weight: 700;
 }
 
@@ -1337,6 +1329,13 @@
   margin-top: 1.5rem;
 }
 
+.zapiski-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .zapiski-subject-chip {
   display: inline-block;
   border-radius: 999px;
@@ -1345,6 +1344,104 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.zapiski-collaborators-badge {
+  cursor: pointer;
+  border: none;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  background-color: var(--secondary);
+  color: var(--foreground);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.zapiski-live-pill {
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background-color: color-mix(in oklab, var(--success, var(--primary)) 20%, transparent);
+  color: var(--success, var(--primary));
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.collaborator-avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.collaborator-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.access-menu {
+  width: 20rem;
+}
+
+.access-search-input {
+  width: 100%;
+  margin-bottom: 0.35rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  padding: 0.5rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--foreground);
+  outline: none;
+}
+
+.access-menu-divider {
+  margin: 0.4rem 0.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.access-menu-empty {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.access-collaborator-row {
+  cursor: default;
+}
+
+.access-permission-select {
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.4rem;
+}
+
+.access-permission-label {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.access-remove-btn {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--muted-foreground);
 }
 
 .shared-note-badge {
@@ -1977,14 +2074,6 @@
     min-width: 22rem;
     margin-top: 0;
     flex-shrink: 0;
-  }
-
-  /* Keep the shared-note importer directly beneath the equally wide
-     "Nova snov" action instead of stretching it across the home screen. */
-  .shared-import {
-    width: 22rem;
-    box-sizing: border-box;
-    margin: 1rem 0 0 auto;
   }
 
   .note-card-list {

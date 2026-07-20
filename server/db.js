@@ -53,6 +53,43 @@ export async function getSharedNoteByToken(token) {
   return rows[0] ?? null
 }
 
+// --- Collaborative sharing (note_collaborators) -------------------------
+
+export async function searchProfiles(client, query) {
+  return resultOrThrow(await client.rpc('search_profiles', { query }))
+}
+
+export async function getNoteCollaborators(client, noteId) {
+  return resultOrThrow(await client.rpc('get_note_collaborators', { note_id_input: noteId }))
+}
+
+export async function getNoteOwner(client, noteId) {
+  const rows = resultOrThrow(await client.rpc('get_note_owner', { note_id_input: noteId }))
+  return rows[0] ?? null
+}
+
+export async function addCollaborator(client, { noteId, userId, permission, invitedBy }) {
+  const rows = resultOrThrow(await client
+    .from('note_collaborators')
+    .insert({ note_id: noteId, user_id: userId, permission, invited_by: invitedBy })
+    .select())
+  return rows[0]
+}
+
+export async function updateCollaboratorPermission(client, { noteId, userId, permission }) {
+  const rows = resultOrThrow(await client
+    .from('note_collaborators')
+    .update({ permission })
+    .eq('note_id', noteId)
+    .eq('user_id', userId)
+    .select())
+  return rows[0] ?? null
+}
+
+export async function removeCollaborator(client, { noteId, userId }) {
+  resultOrThrow(await client.from('note_collaborators').delete().eq('note_id', noteId).eq('user_id', userId))
+}
+
 export async function createNote(client, { title, content, subject = '', mode = '', testDate = null }) {
   const rows = resultOrThrow(await client
     .from('notes')
