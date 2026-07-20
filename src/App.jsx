@@ -425,10 +425,14 @@ function App() {
             notes={notes}
             streak={streak}
             currentUserId={getCurrentUserId()}
+            profile={profile}
             subjectFilter={subjectFilter}
             onSelectNote={handleSelectNote}
             onAddNote={() => setView('wizard')}
             onDeleteNote={handleDeleteNote}
+            onOpenProfile={() => setView('profile')}
+            onLogout={handleLogout}
+            onFilterSubject={handleFilterSubject}
           />
         )}
       </div>

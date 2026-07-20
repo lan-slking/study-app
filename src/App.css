@@ -913,6 +913,29 @@
   flex-shrink: 0;
 }
 
+.home-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Mobile account entry point (Profil / Odjava). Desktop hides .home-topbar
+   entirely, so this never shows there — the sidebar owns the account menu. */
+.home-account-btn {
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+}
+.home-account-btn .profile-avatar {
+  width: 100%;
+  height: 100%;
+}
+
 .home-streak {
   display: flex;
   align-items: center;
@@ -922,6 +945,58 @@
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+/* Horizontal scrollable subject filter — mobile's replacement for the desktop
+   sidebar subject list. Bleeds to the screen edges so chips can scroll under
+   the gutter. Hidden on desktop (sidebar owns filtering). */
+.subject-filter-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  padding: 0 1.5rem;
+}
+.subject-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-chip {
+  cursor: pointer;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.5rem;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.filter-chip.active {
+  color: var(--foreground);
+  border-color: color-mix(in oklab, var(--chip-color, var(--primary)) 60%, transparent);
+  background: color-mix(in oklab, var(--chip-color, var(--primary)) 15%, var(--card));
+}
+.filter-chip-emoji {
+  color: var(--chip-color, inherit);
+}
+
+@media (min-width: 1024px) {
+  .subject-filter-row {
+    display: none;
+  }
 }
 
 .home-streak-count {
