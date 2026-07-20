@@ -702,13 +702,6 @@
   cursor: default;
 }
 
-.profile-field-hint {
-  margin-top: -0.2rem;
-  color: var(--muted-foreground);
-  font-size: 0.75rem;
-  font-weight: 400;
-}
-
 .profile-edit-form input {
   width: 100%;
   border: 1px solid var(--border);

@@ -154,7 +154,6 @@ function Profile({ profile, onBack, onUploadAvatar, onUsernameUpdated, onAccount
             <label>
               E-pošta
               <input type="email" className="profile-readonly-input" value={email} readOnly tabIndex={-1} />
-              <span className="profile-field-hint">E-pošte ni mogoče spremeniti, razen z ustvarjanjem novega računa.</span>
             </label>
 
             <label>
