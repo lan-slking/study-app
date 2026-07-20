@@ -443,7 +443,7 @@
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 8rem;
+  padding: var(--space-7) var(--space-5) calc(6.5rem + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
 }
@@ -463,7 +463,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  padding: 2.5rem 1.5rem 8rem;
+  padding: var(--space-7) var(--space-5) calc(7.5rem + env(safe-area-inset-bottom));
 }
 
 /* Small circular icon button — back arrows, close buttons, the edit pencil. */
@@ -621,7 +621,7 @@
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 8rem;
+  padding: var(--space-7) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -913,6 +913,24 @@
   flex-shrink: 0;
 }
 
+/* Keep the brand + account button reachable while scrolling on phones. The
+   negative margins bleed the bar (and its blurred background) to the screen
+   edges so content scrolls cleanly underneath; padding re-aligns its content
+   to the shell gutter. Desktop hides .home-topbar entirely, so this is scoped
+   to mobile by that alone, but we guard it anyway for clarity. */
+@media (max-width: 1023.98px) {
+  .home-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: calc(-1 * var(--space-7)) calc(-1 * var(--space-5)) 0;
+    padding: calc(env(safe-area-inset-top) + var(--space-4)) var(--space-5) var(--space-3);
+    background: linear-gradient(to bottom, var(--background) 72%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
 .home-topbar-right {
   display: flex;
   align-items: center;
@@ -1029,12 +1047,12 @@
 }
 
 .home-greeting {
-  margin-top: 2.5rem;
+  margin-top: var(--space-7);
 }
 
 .home-greeting h1 {
   margin: 0;
-  font-size: 2.25rem;
+  font-size: var(--text-3xl);
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -1124,7 +1142,7 @@
 
 .home-section-header h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   font-weight: 800;
 }
 
@@ -1162,9 +1180,10 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  border: none;
+  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
   border-radius: var(--radius-lg);
   background-color: var(--card);
+  box-shadow: var(--shadow-card);
   text-align: left;
   color: inherit;
   font-family: inherit;
@@ -1262,7 +1281,7 @@
 
 .wizard-step h1 {
   margin: 0;
-  font-size: 1.875rem;
+  font-size: var(--text-2xl);
   font-weight: 800;
   line-height: 1.2;
 }
@@ -1453,9 +1472,10 @@
   align-items: center;
   gap: 1rem;
   width: 100%;
-  border: none;
+  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
   border-radius: var(--radius-lg);
   background-color: var(--card);
+  box-shadow: var(--shadow-card);
   padding: 1rem 1.5rem;
   text-align: left;
   color: var(--foreground);
@@ -1852,7 +1872,7 @@
 
 .zapiski-title {
   margin: 1rem 0 0;
-  font-size: 1.875rem;
+  font-size: var(--text-2xl);
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.01em;
@@ -1867,7 +1887,7 @@
   background: none;
   padding: 0.25rem 0;
   font-family: inherit;
-  font-size: 1.875rem;
+  font-size: var(--text-2xl);
   font-weight: 800;
   color: var(--foreground);
   outline: none;
@@ -2120,14 +2140,14 @@
 
 .quiz-question {
   margin: 0.5rem 0 0;
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
   font-weight: 800;
   line-height: 1.3;
 }
 
 .fill-blank-sentence {
   margin: 0.5rem 0 0;
-  font-size: 1.35rem;
+  font-size: var(--text-xl);
   font-weight: 700;
   line-height: 1.5;
 }
@@ -2153,7 +2173,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  border: none;
+  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
   border-radius: var(--radius);
   background-color: var(--card);
   padding: 1rem;
