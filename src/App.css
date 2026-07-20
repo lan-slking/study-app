@@ -471,8 +471,8 @@
   cursor: pointer;
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   flex-shrink: 0;
   border: none;
   border-radius: var(--radius);
@@ -492,8 +492,8 @@
 }
 
 .icon-button-spacer {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   flex-shrink: 0;
 }
 
@@ -704,8 +704,8 @@
 }
 
 .profile-eye-btn {
-  width: 2rem;
-  height: 2rem;
+  width: 2.75rem;
+  height: 2.75rem;
   background: none;
   flex-shrink: 0;
 }
@@ -1228,6 +1228,13 @@
   font-size: 0.75rem;
 }
 
+/* Keep the badge visually small but give it a comfortable ~44px tap target. */
+.note-card-delete::before {
+  content: '';
+  position: absolute;
+  inset: -0.55rem;
+}
+
 .note-card-delete:hover {
   background-color: var(--destructive);
   color: var(--destructive-foreground);
@@ -1413,8 +1420,8 @@
   position: absolute;
   top: 0.3rem;
   right: 0.3rem;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.75rem;
+  height: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1422,8 +1429,15 @@
   border-radius: 999px;
   background-color: color-mix(in oklab, var(--background) 60%, transparent);
   color: var(--foreground);
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   cursor: pointer;
+}
+
+/* Small visible button, comfortable tap target. */
+.photo-preview-remove::before {
+  content: '';
+  position: absolute;
+  inset: -0.5rem;
 }
 
 .mode-option-list {
@@ -1499,7 +1513,15 @@
 .zapiski-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
+}
+
+/* The "✓ Posodobljeno" pill is non-essential chrome; drop it on the smallest
+   phones so the back button + 3 action icons never overflow the topbar. */
+@media (max-width: 400px) {
+  .zapiski-live-pill {
+    display: none;
+  }
 }
 
 .export-menu-wrap {
@@ -1726,8 +1748,6 @@
 
 .access-remove-btn {
   flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
   color: var(--muted-foreground);
 }
 
@@ -1944,6 +1964,26 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* On phones the Zapiski action bar holds 3 labelled buttons (Kviz / Kartice /
+   Dopolni) that ellipsized in a single row. Stack emoji over label so each is
+   a compact column that fits at 320px. Desktop (>=1024px) turns this bar into
+   a vertical sidebar and re-sets these buttons, so it's unaffected. */
+@media (max-width: 1023.98px) {
+  .zapiski-actionbar-inner .action-button {
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.7rem 0.5rem;
+    font-size: var(--text-xs);
+    line-height: 1.15;
+    white-space: normal;
+  }
+}
+
+.action-button-emoji {
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 .action-button-primary {
@@ -2171,7 +2211,7 @@
   top: 0.5rem;
   left: 1.25rem;
   right: 1.25rem;
-  height: 16rem;
+  height: clamp(17rem, 48vh, 25rem);
   border-radius: var(--radius-lg);
   background-color: color-mix(in oklab, var(--card) 60%, transparent);
   box-shadow: var(--shadow-card);
@@ -2201,7 +2241,7 @@
 
 .flip-card-inner {
   position: relative;
-  height: 18rem;
+  height: clamp(18rem, 50vh, 26rem);
   width: 100%;
   transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   transform-style: preserve-3d;
@@ -2240,6 +2280,7 @@
 
 .flip-card-face-content {
   flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2248,6 +2289,8 @@
   font-size: 1.375rem;
   font-weight: 800;
   line-height: 1.3;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .flip-card-face-brand {

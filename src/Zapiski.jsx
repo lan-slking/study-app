@@ -422,7 +422,8 @@ function Zapiski({ note, currentUserId, onUpdateNote, onRemoteNoteUpdate, onBack
             onClick={onOpenQuiz}
             disabled={!hasContent}
           >
-            🧠 Kviz
+            <span className="action-button-emoji">🧠</span>
+            <span>Kviz</span>
           </button>
           <button
             type="button"
@@ -430,7 +431,8 @@ function Zapiski({ note, currentUserId, onUpdateNote, onRemoteNoteUpdate, onBack
             onClick={onOpenFlashcards}
             disabled={!hasContent}
           >
-            🃏 Kartice
+            <span className="action-button-emoji">🃏</span>
+            <span>Kartice</span>
           </button>
           <button
             type="button"
@@ -438,7 +440,8 @@ function Zapiski({ note, currentUserId, onUpdateNote, onRemoteNoteUpdate, onBack
             onClick={onOpenDopolnjevanje}
             disabled={!hasContent}
           >
-            ✍️ Dopolni
+            <span className="action-button-emoji">✍️</span>
+            <span>Dopolni</span>
           </button>
         </div>
       </div>
