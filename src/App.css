@@ -1700,6 +1700,87 @@
   width: 20rem;
 }
 
+/* --- Bottom-sheets (mobile) ---
+   Menus tagged .sheet-on-mobile keep their desktop popover styling at
+   >=1024px, but below that they slide up from the bottom edge as a full-width
+   sheet with a dimming backdrop. The backdrop is only rendered/visible on
+   mobile; on desktop it collapses to nothing so the popover still anchors to
+   its trigger. */
+.sheet-backdrop {
+  display: none;
+}
+
+@media (max-width: 1023.98px) {
+  .sheet-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: var(--sheet-backdrop);
+    animation: fade-in 0.2s ease both;
+  }
+
+  .sheet-on-mobile {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 50;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: var(--space-4) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow-sheet);
+    animation: sheet-up 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Grab handle */
+  .sheet-on-mobile::before {
+    content: '';
+    display: block;
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: 0 auto var(--space-3);
+    border-radius: var(--radius-pill);
+    background: var(--border);
+  }
+
+  /* Roomier tap targets inside sheets */
+  .sheet-on-mobile .export-menu-item,
+  .sheet-on-mobile .share-link-row {
+    padding: var(--space-3);
+    min-height: 2.75rem;
+  }
+
+  /* The access sheet's search input and any long collaborator list should
+     scroll within a capped sheet height rather than growing off-screen. */
+  .access-menu.sheet-on-mobile {
+    max-height: 80vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .access-search-input {
   width: 100%;
   margin-bottom: 0.35rem;

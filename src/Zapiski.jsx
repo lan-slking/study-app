@@ -251,7 +251,9 @@ function Zapiski({ note, currentUserId, onUpdateNote, onRemoteNoteUpdate, onBack
               </button>
 
               {isAccessMenuOpen && (
-                <div className="export-menu access-menu">
+                <>
+                <div className="sheet-backdrop" onClick={() => setIsAccessMenuOpen(false)} />
+                <div className="export-menu access-menu sheet-on-mobile">
                   {isOwner && (
                     <>
                       <input
@@ -321,6 +323,7 @@ function Zapiski({ note, currentUserId, onUpdateNote, onRemoteNoteUpdate, onBack
                     ))
                   )}
                 </div>
+                </>
               )}
             </div>
 

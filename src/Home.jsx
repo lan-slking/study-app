@@ -80,7 +80,7 @@ function Home({
             {isAccountMenuOpen && (
               <>
                 <div className="sheet-backdrop" onClick={() => setIsAccountMenuOpen(false)} />
-                <div className="export-menu account-sheet" role="menu">
+                <div className="export-menu sheet-on-mobile" role="menu">
                   <button
                     type="button"
                     className="export-menu-item"
