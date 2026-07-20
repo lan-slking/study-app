@@ -1,4 +1,5 @@
 import { getSession } from './auth.js'
+import { apiFetch } from './apiFetch.js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -47,4 +48,29 @@ export async function uploadAvatar(file) {
   })
   if (!update.ok) throw new Error('Profilne slike ni bilo mogoče shraniti.')
   return (await update.json())[0]
+}
+
+export async function updateUsername(username) {
+  const id = userId()
+  if (!id) throw new Error('Za posodobitev se prijavi.')
+  const response = await fetch(`${supabaseUrl}/rest/v1/profiles?user_id=eq.${id}`, {
+    method: 'PATCH',
+    headers: headers({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+    body: JSON.stringify({ username }),
+  })
+  if (!response.ok) {
+    throw new Error(response.status === 409 ? 'To uporabniško ime je že zasedeno.' : 'Uporabniškega imena ni bilo mogoče spremeniti.')
+  }
+  return (await response.json())[0]
+}
+
+// Actually deletes the auth.users row (server-side, needs the service role
+// key) which cascades to profiles/notes/activity — see the migrations'
+// "on delete cascade" foreign keys.
+export async function deleteAccount() {
+  const response = await apiFetch('/api/account', { method: 'DELETE' })
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}))
+    throw new Error(data.error || 'Računa ni bilo mogoče izbrisati.')
+  }
 }

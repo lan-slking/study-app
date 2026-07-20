@@ -6,6 +6,7 @@ import Zapiski from './Zapiski.jsx'
 import Quiz from './Quiz.jsx'
 import Flashcards from './Flashcards.jsx'
 import Dopolnjevanje from './Dopolnjevanje.jsx'
+import Profile from './Profile.jsx'
 import { subjectMeta } from './subjects.js'
 import AuthScreen from './AuthScreen.jsx'
 import { apiFetch } from './apiFetch.js'
@@ -45,7 +46,7 @@ function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const [profile, setProfile] = useState(null)
 
-  // 'home' | 'wizard' | 'note' | 'quiz' | 'flashcards' | 'dopolnjevanje'
+  // 'home' | 'wizard' | 'note' | 'quiz' | 'flashcards' | 'dopolnjevanje' | 'profile'
   const [view, setView] = useState('home')
 
   // Keep study modes mounted after first opening them, per note. This lets a
@@ -151,6 +152,17 @@ function App() {
     } catch (error) {
       window.alert(error.message || 'Profilne slike ni bilo mogoče naložiti.')
     }
+  }
+
+  function handleUsernameUpdated(updated) {
+    setProfile((previous) => ({ ...previous, ...updated }))
+  }
+
+  // Also used after account deletion — the server-side row is already gone
+  // by then, so this just drops back to AuthScreen the same way logout does.
+  function handleLogout() {
+    signOut()
+    setSession(null)
   }
 
   // Actually send a note's current title/content/test date to the backend.
@@ -337,14 +349,25 @@ function App() {
         notes={notes}
         streak={streak}
         profile={profile}
-        onUploadAvatar={handleUploadAvatar}
         currentView={view}
         subjectFilter={subjectFilter}
+        onOpenProfile={() => setView('profile')}
+        onLogout={handleLogout}
         onGoHome={handleGoHome}
         onFilterSubject={handleFilterSubject}
       />
 
       <div className="app-content">
+        {view === 'profile' && (
+          <Profile
+            profile={profile}
+            onBack={handleGoHome}
+            onUploadAvatar={handleUploadAvatar}
+            onUsernameUpdated={handleUsernameUpdated}
+            onAccountDeleted={handleLogout}
+          />
+        )}
+
         {view === 'wizard' && (
           <NovaSnov notes={notes} onCreated={handleNoteCreated} onCancel={() => setView('home')} />
         )}
