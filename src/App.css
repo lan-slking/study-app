@@ -70,6 +70,36 @@
   --radius-sm: 0.75rem;
   --radius: 1rem;
   --radius-lg: 1rem;
+
+  /* Spacing scale (4px base) — mobile redesign. Existing rules migrate onto
+     these incrementally; values match what was already hardcoded. */
+  --space-1: 0.25rem;  --space-2: 0.5rem;  --space-3: 0.75rem;
+  --space-4: 1rem;     --space-5: 1.5rem;  --space-6: 2rem;
+  --space-7: 2.5rem;   --space-8: 3.5rem;  --space-9: 5rem;
+
+  /* Fluid typography — min at ~375px, max at ~768px. xs/sm/base stay fixed
+     so small text never shrinks below legibility on tiny screens. */
+  --text-xs: 0.75rem;  --text-sm: 0.875rem;  --text-base: 1rem;
+  --text-lg:  clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+  --text-xl:  clamp(1.125rem, 1rem + 0.9vw, 1.5rem);
+  --text-2xl: clamp(1.375rem, 1.15rem + 1.4vw, 1.875rem);
+  --text-3xl: clamp(1.625rem, 1.25rem + 2.2vw, 2.25rem);
+
+  /* Radius + elevation additions for the mobile redesign (bottom-sheets,
+     pills). Do NOT rename the existing --radius* tokens above. */
+  --radius-xl: 1.5rem;
+  --radius-pill: 999px;
+  --shadow-sheet: 0 -8px 40px -8px oklch(0% 0 0 / 0.55);
+  --sheet-backdrop: oklch(8% 0.01 165 / 0.55);
+}
+
+/* Respect users who ask for less motion — the app is animation-heavy. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 /* --- Shared animation keyframes and tap feedback ---
