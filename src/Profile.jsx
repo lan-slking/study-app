@@ -216,7 +216,7 @@ function Profile({ profile, onBack, onUploadAvatar, onUsernameUpdated, onAccount
       </section>
 
       <section className="profile-section profile-danger-section">
-        <h2>Izbris profila</h2>
+        <h2>Izbris računa</h2>
         <p>Izbris računa je trajen in odstrani vse tvoje zapiske ter podatke.</p>
         {deleteError && <p className="auth-message error">{deleteError}</p>}
         <button type="button" className="destructive-button" onClick={handleDeleteAccount} disabled={isDeleting}>
