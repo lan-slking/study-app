@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { getSessionEmail, updatePassword } from './auth.js'
 import { updateUsername, deleteAccount } from './profile.js'
 
-// Real stored passwords are never retrievable — GoTrue (like every auth
-// system) only ever holds a hash, so the "eye" toggle in view mode can't
-// reveal actual characters. It shows an explanation instead. The eye toggle
-// inside the edit form is a normal show/hide of what's currently being typed.
+// The edit form's email field is display-only — email is tied to the
+// auth.users row itself, changing it isn't offered here (would need a new
+// account). Its eye toggle only shows/hides what's being typed for the new
+// password, since the real stored password (a one-way hash) is never
+// retrievable to show in view mode.
 function Profile({ profile, onBack, onUploadAvatar, onUsernameUpdated, onAccountDeleted }) {
   const email = getSessionEmail() ?? ''
 
@@ -14,7 +15,6 @@ function Profile({ profile, onBack, onUploadAvatar, onUsernameUpdated, onAccount
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isNewPasswordVisible, setIsNewPasswordVisible] = useState(false)
-  const [isPasswordHintVisible, setIsPasswordHintVisible] = useState(false)
 
   const [status, setStatus] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -132,18 +132,7 @@ function Profile({ profile, onBack, onUploadAvatar, onUsernameUpdated, onAccount
             </div>
             <div className="profile-view-row">
               <span className="profile-view-label">Geslo</span>
-              <span className="profile-view-value profile-password-value">
-                <span>{isPasswordHintVisible ? 'Iz varnostnih razlogov gesla ni mogoče prikazati.' : '••••••••'}</span>
-                <button
-                  type="button"
-                  className="icon-button tap profile-eye-btn"
-                  onClick={() => setIsPasswordHintVisible((visible) => !visible)}
-                  aria-label="Pokaži geslo"
-                  title="Pokaži geslo"
-                >
-                  👁
-                </button>
-              </span>
+              <span className="profile-view-value profile-password-value">••••••••</span>
             </div>
 
             {status && <p className={`auth-message ${status.type}`}>{status.text}</p>}
@@ -160,6 +149,12 @@ function Profile({ profile, onBack, onUploadAvatar, onUsernameUpdated, onAccount
                 title="3–20 malih črk, številk ali podčrtajev"
                 required
               />
+            </label>
+
+            <label>
+              E-pošta
+              <input type="email" className="profile-readonly-input" value={email} readOnly tabIndex={-1} />
+              <span className="profile-field-hint">E-pošte ni mogoče spremeniti, razen z ustvarjanjem novega računa.</span>
             </label>
 
             <label>
