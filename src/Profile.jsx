@@ -2,6 +2,17 @@ import { useState } from 'react'
 import { getSessionEmail, updatePassword } from './auth.js'
 import { updateUsername, deleteAccount } from './profile.js'
 
+// Same back-arrow glyph as Zapiski.jsx's ToolbarIcon("back"), duplicated
+// here since that one is local to Zapiski.jsx and not shared.
+function BackIcon() {
+  return (
+    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </svg>
+  )
+}
+
 // The edit form's email field is display-only — email is tied to the
 // auth.users row itself, changing it isn't offered here (would need a new
 // account). Its eye toggle only shows/hides what's being typed for the new
@@ -87,7 +98,9 @@ function Profile({ profile, onBack, onUploadAvatar, onUsernameUpdated, onAccount
   return (
     <main className="profile-page">
       <div className="profile-page-topbar">
-        <button type="button" className="icon-button tap" onClick={onBack} aria-label="Nazaj" title="Nazaj">←</button>
+        <button type="button" className="icon-button tap" onClick={onBack} aria-label="Nazaj" title="Nazaj">
+          <BackIcon />
+        </button>
         <h1>Profil</h1>
       </div>
 
