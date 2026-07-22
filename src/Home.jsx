@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { subjectMeta, subjectsInUse } from './subjects.js'
 import { formatRelativeDate } from './relativeDate.js'
 import { daysUntilTest, formatDaysUntilTest } from './reviewPlan.js'
@@ -34,11 +35,18 @@ function Home({
   // >=1024px. Outside-click close mirrors Sidebar.jsx / Zapiski.jsx.
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const accountMenuRef = useRef(null)
+  // The menu is portaled to <body> (see below), so it's no longer a DOM
+  // descendant of accountMenuRef — its own ref is needed so a click on a menu
+  // item doesn't count as an "outside" click and close it before the item's
+  // onClick fires.
+  const menuRef = useRef(null)
 
   useEffect(() => {
     if (!isAccountMenuOpen) return
     function handlePointerDown(event) {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
+      const insideTrigger = accountMenuRef.current?.contains(event.target)
+      const insideMenu = menuRef.current?.contains(event.target)
+      if (!insideTrigger && !insideMenu) {
         setIsAccountMenuOpen(false)
       }
     }
@@ -77,36 +85,38 @@ function Home({
                 )}
               </span>
             </button>
-            {isAccountMenuOpen && (
-              <>
-                <div className="sheet-backdrop" onClick={() => setIsAccountMenuOpen(false)} />
-                <div className="export-menu sheet-on-mobile" role="menu">
-                  <button
-                    type="button"
-                    className="export-menu-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsAccountMenuOpen(false)
-                      onOpenProfile?.()
-                    }}
-                  >
-                    👤 Profil
-                  </button>
-                  <div className="access-menu-divider" />
-                  <button
-                    type="button"
-                    className="export-menu-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsAccountMenuOpen(false)
-                      onLogout?.()
-                    }}
-                  >
-                    🚪 Odjava
-                  </button>
-                </div>
-              </>
-            )}
+            {isAccountMenuOpen &&
+              createPortal(
+                <>
+                  <div className="sheet-backdrop" onClick={() => setIsAccountMenuOpen(false)} />
+                  <div className="export-menu sheet-on-mobile" role="menu" ref={menuRef}>
+                    <button
+                      type="button"
+                      className="export-menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsAccountMenuOpen(false)
+                        onOpenProfile?.()
+                      }}
+                    >
+                      👤 Profil
+                    </button>
+                    <div className="access-menu-divider" />
+                    <button
+                      type="button"
+                      className="export-menu-item"
+                      role="menuitem"
+                      onClick={() => {
+                        setIsAccountMenuOpen(false)
+                        onLogout?.()
+                      }}
+                    >
+                      🚪 Odjava
+                    </button>
+                  </div>
+                </>,
+                document.body,
+              )}
           </div>
         </div>
       </header>
