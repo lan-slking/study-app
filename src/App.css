@@ -2450,15 +2450,101 @@
     gap: 1rem;
   }
 
-  .wizard,
-  .quiz-screen,
-  .kartice-screen,
-  .dopolnjevanje-screen {
+  /* Kartice can widen here — its actions are in-flow, so nothing goes out of
+     alignment. The other focused screens (wizard/quiz/dopolnjevanje) keep the
+     narrow mobile column until the 768px card treatment below, because their
+     footer is position:fixed at a fixed width and would otherwise sit
+     narrower than a widened content column. */
+  .kartice-screen {
     max-width: 600px;
   }
 
   .photo-preview-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* --- Tablet / iPad (768px+) ---
+   The band between "big phone" and "full desktop with sidebar". No sidebar
+   yet (that starts at 1024px) — Domov stays the hub — but screens stop
+   looking like a stretched phone: reading columns widen to use the space,
+   and the focused study screens (Nova snov / Kviz / Kartice / Dopolnjevanje)
+   become centered cards with an in-flow footer, which also fixes the
+   fixed-footer-narrower-than-content misalignment that a wide column caused. */
+@media (min-width: 768px) {
+  /* Domov: fill the iPad comfortably instead of a 700px column stranded in
+     the middle. Still two columns — the horizontal cards keep their meta
+     readable; the third column waits for the roomier desktop width. */
+  .home {
+    max-width: 860px;
+  }
+
+  /* Zapiski: widen the reading column so notes aren't a 440px ribbon on an
+     820px screen. Still a single column with the bottom action bar; the true
+     two-column reading+sidebar layout starts at 1024px. The action bar is
+     matched to the column width so it stays aligned. */
+  .zapiski {
+    max-width: 720px;
+  }
+
+  .zapiski-actionbar {
+    max-width: 720px;
+  }
+
+  /* Focused screens become a centered, self-contained card — a focused task,
+     not a full-height scroll. The fixed footer becomes static inside the
+     card, so it always lines up with the content above it. */
+  .wizard,
+  .quiz-screen,
+  .dopolnjevanje-screen,
+  .kartice-screen {
+    flex: none;
+    align-self: center;
+    width: 100%;
+    max-width: 640px;
+    margin: 3rem auto;
+    padding: 2.5rem;
+    background-color: var(--card);
+    border-radius: var(--radius-lg);
+  }
+
+  .wizard .fixed-footer,
+  .quiz-screen .fixed-footer,
+  .dopolnjevanje-screen .fixed-footer {
+    position: static;
+    max-width: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    background: none;
+  }
+
+  /* The card is the same 640px width on tablet and desktop, so give the quiz
+     the same two-column option grid and larger typography at both. */
+  .quiz-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quiz-question,
+  .fill-blank-sentence {
+    font-size: 1.75rem;
+  }
+
+  .flip-card-face-content {
+    font-size: 1.625rem;
+  }
+
+  .flip-card-inner {
+    height: 20rem;
+  }
+
+  .wizard-step h1 {
+    font-size: 2.125rem;
+  }
+
+  /* Profile reads better a touch wider than the phone column. */
+  .profile-page {
+    max-width: 560px;
   }
 }
 
@@ -2570,64 +2656,19 @@
     white-space: normal;
   }
 
-  /* Nova snov & Kviz: a centered card instead of a full-height, full-width
-     column — these are focused, transient interactions, not a page you
-     scroll through, so they no longer need to stretch to the viewport. */
+  /* The focused-screen card treatment (Nova snov / Kviz / Kartice /
+     Dopolnjevanje), the two-column quiz options, and their larger typography
+     all live in the 768px tier above — the card is the same width here, so
+     they carry up unchanged and don't need to be repeated. Below is only what
+     genuinely changes at desktop width. */
+
+  /* Reset the tablet card's centering margin so it sits comfortably in the
+     taller desktop viewport. */
   .wizard,
   .quiz-screen,
-  .dopolnjevanje-screen {
-    flex: none;
-    align-self: center;
-    width: 100%;
-    max-width: 640px;
-    margin: 3rem auto;
-    padding: 2.5rem;
-    background-color: var(--card);
-    border-radius: var(--radius-lg);
-  }
-
-  .wizard .fixed-footer,
-  .quiz-screen .fixed-footer,
-  .dopolnjevanje-screen .fixed-footer {
-    position: static;
-    max-width: none;
-    margin: 1.5rem 0 0;
-    padding: 0;
-    background: none;
-  }
-
+  .dopolnjevanje-screen,
   .kartice-screen {
-    flex: none;
-    align-self: center;
-    width: 100%;
-    max-width: 640px;
-    margin: 3rem auto;
-    padding: 2.5rem;
-    background-color: var(--card);
-    border-radius: var(--radius-lg);
-  }
-
-  /* Larger typography for the more focused desktop card layouts. */
-  .quiz-question,
-  .fill-blank-sentence {
-    font-size: 1.75rem;
-  }
-
-  .quiz-options {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .flip-card-face-content {
-    font-size: 1.625rem;
-  }
-
-  .flip-card-inner {
-    height: 20rem;
-  }
-
-  .wizard-step h1 {
-    font-size: 2.125rem;
+    margin: 4rem auto;
   }
 }
 
