@@ -970,6 +970,7 @@
    the gutter. Hidden on desktop (sidebar owns filtering). */
 .subject-filter-row {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-5);
   overflow-x: auto;
@@ -979,6 +980,14 @@
   margin-left: -1.5rem;
   margin-right: -1.5rem;
   padding: 0 1.5rem;
+  /* This row is a horizontal scroll container AND a flex item inside the
+     column-flex .home. When the chips overflow horizontally (they do on
+     phone widths, but not on the wider iPad where they fit), its indefinite
+     height otherwise resolves to 0 and the whole row vanishes — which is
+     exactly what happened on phones. A definite min-height plus flex:none
+     pins the height so it never collapses regardless of overflow. */
+  flex: 0 0 auto;
+  min-height: 2.75rem;
 }
 .subject-filter-row::-webkit-scrollbar {
   display: none;
@@ -1216,9 +1225,19 @@
   margin-top: 0.25rem;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  row-gap: 0.15rem;
   font-size: 0.75rem;
   color: var(--muted-foreground);
+}
+
+/* Keep each meta item (subject chip, relative date, test countdown, shared
+   badge) intact — without this the plain date text broke mid-phrase in the
+   narrow multi-column cards ("pred 2" / "dnevi"). Items now wrap as whole
+   units onto the next line instead. */
+.note-card-meta > span {
+  white-space: nowrap;
 }
 
 .note-card-subject {
